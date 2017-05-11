@@ -113,7 +113,7 @@ export default class Filter {
                         if (tok.length !== 2) {
                            throw new Error('missing `AND` in `BETWEEN` value');
                         }
-                        sql += 'BETWEEN ' + SqlString.escapeId(tok[0].trim()) + ' AND ' + SqlString.escapeId(tok[1].trim());
+                        sql += 'BETWEEN ' + SqlString.escape(tok[0].trim()) + ' AND ' + SqlString.escape(tok[1].trim());
                         break;
                      }
                      case QueryConditionOperator_NOT_BETWEEN : {
@@ -121,7 +121,7 @@ export default class Filter {
                         if (tok.length !== 2) {
                            throw new Error('missing `AND` in `BETWEEN` value');
                         }
-                        sql += 'NOT BETWEEN ' + SqlString.escapeId(tok[0].trim()) + ' AND ' + SqlString.escapeId(tok[1].trim());
+                        sql += 'NOT BETWEEN ' + SqlString.escape(tok[0].trim()) + ' AND ' + SqlString.escape(tok[1].trim());
                         break;
                      }
                      case QueryConditionOperator_LIKE : {
