@@ -253,7 +253,7 @@ test('simple BETWEEN condition', t => {
    };
    t.deepEqual(Filter.toWhere(o), {
       params: [],
-      query: "WHERE `foo` BETWEEN '1' AND '2'"
+      query: 'WHERE `foo` BETWEEN `1` AND `2`'
    });
 });
 
@@ -271,7 +271,7 @@ test('simple NOT BETWEEN condition', t => {
    };
    t.deepEqual(Filter.toWhere(o), {
       params: [],
-      query: "WHERE `foo` NOT BETWEEN '1' AND '2'"
+      query: 'WHERE `foo` NOT BETWEEN `1` AND `2`'
    });
 });
 
