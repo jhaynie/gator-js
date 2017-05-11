@@ -1,3 +1,5 @@
+import SqlString from 'sqlstring';
+
 export const QueryDirection_ASCENDING = 'ASCENDING';
 export const QueryDirection_DESCENDING = 'DESCENDING';
 
@@ -30,12 +32,13 @@ export default class Filter {
     */
    static toWherePrepend(filter, key, value) {
       filter = filter || {};
+      
       if (!filter.condition) {
          filter.condition = [];
       }
       filter.condition.unshift({
          conditions:[{
-            filter: key,
+            field: key,
             value: value,
             operator: QueryConditionOperator_EQUAL
          }]
@@ -55,7 +58,7 @@ export default class Filter {
             for (let c = 0; c < filter.condition.length; c++) {
                const cond = filter.condition[c];
                const stmt = cond.conditions.map(cd => {
-                  let sql = '`' + cd.filter + '` ';
+                  let sql = '`' + cd.field + '` ';
                   switch (cd.operator) {
                      case QueryConditionOperator_EQUAL: {
                         sql += '= ?';
@@ -106,13 +109,19 @@ export default class Filter {
                         break;
                      }
                      case QueryConditionOperator_BETWEEN: {
-                        sql += 'BETWEEN ?';
-                        params.push(cd.value);
+                        const tok = cd.value.split(' AND ');
+                        if (tok.length !== 2) {
+                           throw new Error('missing `AND` in `BETWEEN` value');
+                        }
+                        sql += 'BETWEEN ' + SqlString.escape(tok[0].trim()) + ' AND ' + SqlString.escape(tok[1].trim());
                         break;
                      }
                      case QueryConditionOperator_NOT_BETWEEN : {
-                        sql += 'NOT BETWEEN ?';
-                        params.push(cd.value);
+                        const tok = cd.value.split(' AND ');
+                        if (tok.length !== 2) {
+                           throw new Error('missing `AND` in `BETWEEN` value');
+                        }
+                        sql += 'NOT BETWEEN ' + SqlString.escape(tok[0].trim()) + ' AND ' + SqlString.escape(tok[1].trim());
                         break;
                      }
                      case QueryConditionOperator_LIKE : {

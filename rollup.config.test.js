@@ -15,5 +15,5 @@ export default {
   intro: 'require("source-map-support").install()',
   dest: 'dist/test-bundle.js',
   sourceMap: true,
-  external: [ 'ava' ]
+  external: [ 'ava', 'sqlstring' ]
 }

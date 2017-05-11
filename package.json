@@ -1,6 +1,6 @@
 {
   "name": "gator-js",
-  "version": "0.0.6",
+  "version": "0.0.8",
   "description": "Gator codegen JS helper",
   "main": "lib/bundle.js",
   "license": "MIT",
@@ -26,5 +26,8 @@
     "rollup-plugin-commonjs": "^8.0.2",
     "rollup-plugin-multi-entry": "^2.0.1",
     "rollup-plugin-node-resolve": "^3.0.0"
+  },
+  "dependencies": {
+    "sqlstring": "^2.2.0"
   }
 }

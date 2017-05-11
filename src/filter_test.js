@@ -30,7 +30,7 @@ test('simple equal condition', t => {
       condition: [
          {
             conditions: [{
-               filter: 'foo',
+               field: 'foo',
                operator: QueryConditionOperator_EQUAL,
                value: 'bar'
             }]
@@ -48,7 +48,7 @@ test('simple not equal condition', t => {
       condition: [
          {
             conditions: [{
-               filter: 'foo',
+               field: 'foo',
                operator: QueryConditionOperator_NOT_EQUAL,
                value: 'bar'
             }]
@@ -66,7 +66,7 @@ test('simple is null condition', t => {
       condition: [
          {
             conditions: [{
-               filter: 'foo',
+               field: 'foo',
                operator: QueryConditionOperator_NULL
             }]
          }
@@ -83,7 +83,7 @@ test('simple is not null condition', t => {
       condition: [
          {
             conditions: [{
-               filter: 'foo',
+               field: 'foo',
                operator: QueryConditionOperator_NOT_NULL
             }]
          }
@@ -100,7 +100,7 @@ test('simple is greater condition', t => {
       condition: [
          {
             conditions: [{
-               filter: 'foo',
+               field: 'foo',
                operator: QueryConditionOperator_GREATER,
                value: 1
             }]
@@ -118,7 +118,7 @@ test('simple is greater than equal condition', t => {
       condition: [
          {
             conditions: [{
-               filter: 'foo',
+               field: 'foo',
                operator: QueryConditionOperator_GREATER_EQ,
                value: 1
             }]
@@ -136,7 +136,7 @@ test('simple is less than condition', t => {
       condition: [
          {
             conditions: [{
-               filter: 'foo',
+               field: 'foo',
                operator: QueryConditionOperator_LESS,
                value: 1
             }]
@@ -154,7 +154,7 @@ test('simple is less than equal condition', t => {
       condition: [
          {
             conditions: [{
-               filter: 'foo',
+               field: 'foo',
                operator: QueryConditionOperator_LESS_EQ,
                value: 1
             }]
@@ -172,7 +172,7 @@ test('simple is IN condition', t => {
       condition: [
          {
             conditions: [{
-               filter: 'foo',
+               field: 'foo',
                operator: QueryConditionOperator_IN,
                value: [1]
             }]
@@ -190,7 +190,7 @@ test('simple is NOT IN condition', t => {
       condition: [
          {
             conditions: [{
-               filter: 'foo',
+               field: 'foo',
                operator: QueryConditionOperator_NOT_IN,
                value: [1]
             }]
@@ -208,7 +208,7 @@ test('simple is LIKE condition', t => {
       condition: [
          {
             conditions: [{
-               filter: 'foo',
+               field: 'foo',
                operator: QueryConditionOperator_LIKE,
                value: '%bar%'
             }]
@@ -226,7 +226,7 @@ test('simple is NOT LIKE condition', t => {
       condition: [
          {
             conditions: [{
-               filter: 'foo',
+               field: 'foo',
                operator: QueryConditionOperator_NOT_LIKE,
                value: '%bar%'
             }]
@@ -239,12 +239,12 @@ test('simple is NOT LIKE condition', t => {
    });
 });
 
-test('simple is BETWEEN condition', t => {
+test('simple BETWEEN condition', t => {
    const o = {
       condition: [
          {
             conditions: [{
-               filter: 'foo',
+               field: 'foo',
                operator: QueryConditionOperator_BETWEEN,
                value: '1 AND 2'
             }]
@@ -252,17 +252,17 @@ test('simple is BETWEEN condition', t => {
       ]
    };
    t.deepEqual(Filter.toWhere(o), {
-      params: ['1 AND 2'],
-      query: 'WHERE `foo` BETWEEN ?'
+      params: [],
+      query: "WHERE `foo` BETWEEN '1' AND '2'"
    });
 });
 
-test('simple is BETWEEN condition', t => {
+test('simple NOT BETWEEN condition', t => {
    const o = {
       condition: [
          {
             conditions: [{
-               filter: 'foo',
+               field: 'foo',
                operator: QueryConditionOperator_NOT_BETWEEN,
                value: '1 AND 2'
             }]
@@ -270,8 +270,8 @@ test('simple is BETWEEN condition', t => {
       ]
    };
    t.deepEqual(Filter.toWhere(o), {
-      params: ['1 AND 2'],
-      query: 'WHERE `foo` NOT BETWEEN ?'
+      params: [],
+      query: "WHERE `foo` NOT BETWEEN '1' AND '2'"
    });
 });
 
@@ -280,11 +280,11 @@ test('simple multi condition', t => {
       condition: [
          {
             conditions: [{
-               filter: 'foo',
+               field: 'foo',
                operator: QueryConditionOperator_EQUAL,
                value: 'bar'
             },{
-               filter: 'foo',
+               field: 'foo',
                operator: QueryConditionOperator_NOT_EQUAL,
                value: 'foo'
             }]
@@ -302,22 +302,22 @@ test('complex multi condition default', t => {
       condition: [
          {
             conditions: [{
-               filter: 'foo',
+               field: 'foo',
                operator: QueryConditionOperator_EQUAL,
                value: 'bar'
             },{
-               filter: 'foo',
+               field: 'foo',
                operator: QueryConditionOperator_NOT_EQUAL,
                value: 'foo'
             }]
          },
          {
             conditions: [{
-               filter: 'bar',
+               field: 'bar',
                operator: QueryConditionOperator_EQUAL,
                value: 'bar'
             },{
-               filter: 'bar',
+               field: 'bar',
                operator: QueryConditionOperator_NOT_EQUAL,
                value: 'foo'
             }]
@@ -335,11 +335,11 @@ test('complex multi condition with OR', t => {
       condition: [
          {
             conditions: [{
-               filter: 'foo',
+               field: 'foo',
                operator: QueryConditionOperator_EQUAL,
                value: 'bar'
             },{
-               filter: 'foo',
+               field: 'foo',
                operator: QueryConditionOperator_NOT_EQUAL,
                value: 'foo'
             }],
@@ -347,11 +347,11 @@ test('complex multi condition with OR', t => {
          },
          {
             conditions: [{
-               filter: 'bar',
+               field: 'bar',
                operator: QueryConditionOperator_EQUAL,
                value: 'bar'
             },{
-               filter: 'bar',
+               field: 'bar',
                operator: QueryConditionOperator_NOT_EQUAL,
                value: 'foo'
             }]
@@ -369,11 +369,11 @@ test('complex multi condition with AND', t => {
       condition: [
          {
             conditions: [{
-               filter: 'foo',
+               field: 'foo',
                operator: QueryConditionOperator_EQUAL,
                value: 'bar'
             },{
-               filter: 'foo',
+               field: 'foo',
                operator: QueryConditionOperator_NOT_EQUAL,
                value: 'foo'
             }],
@@ -381,11 +381,11 @@ test('complex multi condition with AND', t => {
          },
          {
             conditions: [{
-               filter: 'bar',
+               field: 'bar',
                operator: QueryConditionOperator_EQUAL,
                value: 'bar'
             },{
-               filter: 'bar',
+               field: 'bar',
                operator: QueryConditionOperator_NOT_EQUAL,
                value: 'foo'
             }]
@@ -486,7 +486,7 @@ test('prepend condition', t => {
       condition: [
          {
             conditions: [{
-               filter: 'foo',
+               field: 'foo',
                operator: QueryConditionOperator_EQUAL,
                value: 'bar'
             }]
