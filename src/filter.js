@@ -80,7 +80,11 @@ export default class Filter {
             for (let c = 0; c < filter.condition.length; c++) {
                const cond = filter.condition[c];
                const stmt = cond.conditions.map(cd => {
-                  let sql = '`' + cd.field + '` ';
+                  let sql = '';
+                  if (cd.table || filter.table) {
+                     sql += '`' + (cd.table || filter.table) + '`.';
+                  }
+                  sql += '`' + cd.field + '` ';
                   switch (cd.operator) {
                      case QueryConditionOperator_EQUAL: {
                         sql += '= ?';
@@ -175,11 +179,11 @@ export default class Filter {
                sql += groups[0];
             }
          }
-         if (filter.order) {
-            sql += ' ORDER BY ' + filter.order.map(o => '`' + o.field + '` ' + (o.direction === QueryDirection_DESCENDING ? 'DESC' : 'ASC')).join(', ');
-         }
          if (filter.groupby) {
             sql += ' GROUP BY ' + filter.groupby;
+         }
+         if (filter.order) {
+            sql += ' ORDER BY ' + filter.order.map(o => '`' + o.field + '` ' + (o.direction === QueryDirection_DESCENDING ? 'DESC' : 'ASC')).join(', ');
          }
          if (filter.limit) {
             sql += ' LIMIT ' + filter.limit;

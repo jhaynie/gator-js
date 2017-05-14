@@ -575,3 +575,61 @@ test('where groupby with condition', t => {
       query: 'WHERE foo.a=bar.b GROUP BY foo'
    });
 });
+
+test('where order and groupby', t => {
+   const o = {
+      condition: [
+         {
+            conditions: [{
+               field: 'foo.a=bar.b',
+               operator: QueryConditionOperator_JOIN
+            }]
+         }
+      ],
+      order: [{
+         field: 'foo'
+      }]
+   };
+   t.deepEqual(Filter.toWhereConditions(o, [], 'foo'), {
+      params: [],
+      query: 'WHERE foo.a=bar.b GROUP BY foo ORDER BY `foo` ASC'
+   });
+});
+
+test('where table', t => {
+   const o = {
+      condition: [
+         {
+            conditions: [{
+               field: 'foo',
+               operator: QueryConditionOperator_EQUAL,
+               value: 'a'
+            }]
+         }
+      ],
+      table: 'bar'
+   };
+   t.deepEqual(Filter.toWhere(o), {
+      params: ['a'],
+      query: 'WHERE `bar`.`foo` = ?'
+   });
+});
+
+test('where table condition', t => {
+   const o = {
+      condition: [
+         {
+            conditions: [{
+               table: 'bar',
+               field: 'foo',
+               operator: QueryConditionOperator_EQUAL,
+               value: 'a'
+            }]
+         }
+      ]
+   };
+   t.deepEqual(Filter.toWhere(o), {
+      params: ['a'],
+      query: 'WHERE `bar`.`foo` = ?'
+   });
+});
