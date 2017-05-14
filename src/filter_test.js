@@ -633,3 +633,13 @@ test('where table condition', t => {
       query: 'WHERE `bar`.`foo` = ?'
    });
 });
+
+test('where conditions array is empty', t => {
+   const o = {
+      condition: []
+   };
+   t.deepEqual(Filter.toWhere(o), {
+      params: [],
+      query: ''
+   });
+});

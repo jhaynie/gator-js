@@ -74,7 +74,7 @@ export default class Filter {
       if (filter) {
          let sql = '';
          const params = [];
-         if (filter.condition) {
+         if (filter.condition && filter.condition.length) {
             sql += 'WHERE ';
             const groups = [];
             for (let c = 0; c < filter.condition.length; c++) {
