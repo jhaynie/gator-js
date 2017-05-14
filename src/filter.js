@@ -17,6 +17,7 @@ export const QueryConditionOperator_BETWEEN = 'BETWEEN';
 export const QueryConditionOperator_NOT_BETWEEN = 'NOT_BETWEEN';
 export const QueryConditionOperator_LIKE = 'LIKE';
 export const QueryConditionOperator_NOT_LIKE = 'NOT_LIKE';
+export const QueryConditionOperator_JOIN = 'JOIN';
 
 export const QueryConditionGroupOperator_AND = 'AND';
 export const QueryConditionGroupOperator_OR = 'OR';
@@ -43,7 +44,28 @@ export default class Filter {
             operator: QueryConditionOperator_EQUAL
          }]
       });
-      return this.toWhere(filter, key, value);
+      return this.toWhere(filter);
+   }
+   /**
+    * construct a where filter using an array of join conditions
+    */
+   static toWhereConditions(filter, conds, groupby) {
+      filter = filter || {};
+      if (filter.groupby) {
+         filter.groupby = groupby;
+      }
+      if (!filter.condition) {
+         filter.condition = [];
+      }
+      conds && conds.map(cond => {
+         filter.condition.push({
+            conditions:[{
+               field: cond,
+               operator: QueryConditionOperator_JOIN
+            }]
+         });
+      });
+      return this.toWhere(filter);
    }
    /**
     * construct a where filter expression as SQL
@@ -134,6 +156,10 @@ export default class Filter {
                         params.push(cd.value);
                         break;
                      }
+                     case QueryConditionOperator_JOIN: {
+                        sql = cd.field;
+                        break;
+                     }
                   }
                   return sql;
                });
@@ -151,6 +177,9 @@ export default class Filter {
          }
          if (filter.order) {
             sql += ' ORDER BY ' + filter.order.map(o => '`' + o.field + '` ' + (o.direction === QueryDirection_DESCENDING ? 'DESC' : 'ASC')).join(', ');
+         }
+         if (filter.groupby) {
+            sql += ' GROUP BY ' + filter.groupby;
          }
          if (filter.limit) {
             sql += ' LIMIT ' + filter.limit;

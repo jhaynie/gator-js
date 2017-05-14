@@ -45,3 +45,8 @@ test('error', async t => {
    const error = await t.throws(Query.exec(db, 'select * from foo', [], MockClass, ['foo']));
    t.is(error.message, 'error');
 });
+
+test('escape', t => {
+   t.is(Query.escape('abc'), `'abc'`);
+   t.is(Query.escapeId('abc'), '`abc`');
+});

@@ -1,9 +1,16 @@
+import SqlString from 'sqlstring';
 /**
  * Query helper class
  * 
  * @class
  */
 export default class Query {
+   static escapeId(property) {
+      return SqlString.escapeId(property);
+   }
+   static escape(property) {
+      return SqlString.escape(property);
+   }
    static exec(db, sql, params, Class, columns) {
       return new Promise (
          (resolve, reject) => {

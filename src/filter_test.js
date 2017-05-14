@@ -15,6 +15,7 @@ import {
    QueryConditionOperator_NOT_LIKE,
    QueryConditionOperator_BETWEEN,
    QueryConditionOperator_NOT_BETWEEN,
+   QueryConditionOperator_JOIN,
    QueryConditionGroupOperator_AND,
    QueryConditionGroupOperator_OR,
    QueryDirection_ASCENDING,
@@ -496,5 +497,82 @@ test('prepend condition', t => {
    t.deepEqual(Filter.toWherePrepend(o, "a", "b"), {
       params: ['b', 'bar'],
       query: 'WHERE (`a` = ?) AND (`foo` = ?)'
+   });
+});
+
+test('where join', t => {
+   const o = {
+      condition: [
+         {
+            conditions: [{
+               field: 'foo.a=bar.b',
+               operator: QueryConditionOperator_JOIN
+            }]
+         }
+      ]
+   };
+   t.deepEqual(Filter.toWhere(o), {
+      params: [],
+      query: 'WHERE foo.a=bar.b'
+   });
+});
+
+test('where join conditions', t => {
+   t.deepEqual(Filter.toWhereConditions(null, ['foo.a=bar.b']), {
+      params: [],
+      query: 'WHERE foo.a=bar.b'
+   });
+});
+
+test('where join conditions with multiple', t => {
+   const o = {
+      condition: [
+         {
+            conditions: [{
+               field: 'foo.a=bar.b',
+               operator: QueryConditionOperator_JOIN
+            }]
+         }
+      ]
+   };
+   t.deepEqual(Filter.toWhereConditions(o, ['a.b=b.c']), {
+      params: [],
+      query: 'WHERE (foo.a=bar.b) AND (a.b=b.c)'
+   });
+});
+
+test('where groupby', t => {
+   const o = {
+      condition: [
+         {
+            conditions: [{
+               field: 'foo.a=bar.b',
+               operator: QueryConditionOperator_JOIN
+            }]
+         }
+      ],
+      groupby: 'foo'
+   };
+   t.deepEqual(Filter.toWhere(o), {
+      params: [],
+      query: 'WHERE foo.a=bar.b GROUP BY foo'
+   });
+});
+
+test('where groupby with condition', t => {
+   const o = {
+      condition: [
+         {
+            conditions: [{
+               field: 'foo.a=bar.b',
+               operator: QueryConditionOperator_JOIN
+            }]
+         }
+      ],
+      groupby: 'foo'
+   };
+   t.deepEqual(Filter.toWhereConditions(o, [], 'foo'), {
+      params: [],
+      query: 'WHERE foo.a=bar.b GROUP BY foo'
    });
 });
