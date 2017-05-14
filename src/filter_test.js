@@ -568,8 +568,7 @@ test('where groupby with condition', t => {
                operator: QueryConditionOperator_JOIN
             }]
          }
-      ],
-      groupby: 'foo'
+      ]
    };
    t.deepEqual(Filter.toWhereConditions(o, [], 'foo'), {
       params: [],

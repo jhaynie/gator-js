@@ -51,7 +51,7 @@ export default class Filter {
     */
    static toWhereConditions(filter, conds, groupby) {
       filter = filter || {};
-      if (filter.groupby) {
+      if (groupby) {
          filter.groupby = groupby;
       }
       if (!filter.condition) {
