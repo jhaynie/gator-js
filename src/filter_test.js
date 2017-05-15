@@ -643,3 +643,29 @@ test('where conditions array is empty', t => {
       query: ''
    });
 });
+
+test('where join filter', t => {
+   t.deepEqual(Filter.toJoin(null, 'a', 'b'), {
+      params: [],
+      query: 'WHERE `a`=`b`'
+   });
+});
+
+test('where join filter with multiple', t => {
+   t.deepEqual(Filter.toJoin(null, 'a,b', 'c,d'), {
+      params: [],
+      query: 'WHERE `a`=`c` AND `b`=`d`'
+   });
+   t.deepEqual(Filter.toJoin(null, 'a, b', 'c, d'), {
+      params: [],
+      query: 'WHERE `a`=`c` AND `b`=`d`'
+   });
+   t.deepEqual(Filter.toJoin({table:'foo'}, 'a, b', 'c, d'), {
+      params: [],
+      query: 'WHERE `foo`.`a`=`foo`.`c` AND `foo`.`b`=`foo`.`d`'
+   });
+   t.deepEqual(Filter.toJoin({table:'foo'}, 'a, b', 'c, d', 'x', 'y'), {
+      params: [],
+      query: 'WHERE `x`.`a`=`y`.`c` AND `x`.`b`=`y`.`d`'
+   });
+});

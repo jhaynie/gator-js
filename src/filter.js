@@ -29,6 +29,40 @@ export const QueryConditionGroupOperator_OR = 'OR';
  */
 export default class Filter {
    /**
+    * create a simple join condition filter
+    */
+   static toJoin(filter, left, right, leftTable, rightTable) {
+      filter = filter || {};
+      if (!filter.condition) {
+         filter.condition = [];
+      }
+      const leftTok = left.split(',');
+      const rightTok = right.split(',');
+
+      if (leftTok.length !== rightTok.length) {
+         throw new Error('left join should equal right join number of fields');
+      }
+
+      const conds = [];
+      filter.condition.push({conditions:conds});
+
+      leftTok.forEach((item, i) => {
+         let left = SqlString.escapeId(item.trim());
+         if (leftTable || filter.table) {
+            left = SqlString.escapeId(leftTable || filter.table) + '.' + left;
+         }
+         let right = SqlString.escapeId(rightTok[i].trim());
+         if (rightTable || filter.table) {
+            right = SqlString.escapeId(rightTable || filter.table) + '.' + right;
+         }
+         conds.push({
+            field: left + '=' + right,
+            operator: QueryConditionOperator_JOIN
+         });
+      });
+      return this.toWhere(filter);
+   }
+   /**
     * create a filter prepending the key = value to the query
     */
    static toWherePrepend(filter, key, value) {
