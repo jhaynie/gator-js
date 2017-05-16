@@ -29,15 +29,15 @@ export const QueryConditionGroupOperator_OR = 'OR';
  */
 export default class Filter {
    /**
-    * create a simple join condition filter
+    * create a simple join filter which includes params from the right table
     */
-   static toJoin(filter, left, right, leftTable, rightTable) {
+   static toJoinWithParams(filter, leftStr, rightStr, leftTable, rightTable, params) {
       filter = filter || {};
       if (!filter.condition) {
          filter.condition = [];
       }
-      const leftTok = left.split(',');
-      const rightTok = right.split(',');
+      const leftTok = leftStr.split(',');
+      const rightTok = rightStr.split(',');
 
       if (leftTok.length !== rightTok.length) {
          throw new Error('left join should equal right join number of fields');
@@ -51,7 +51,8 @@ export default class Filter {
          if (leftTable || filter.table) {
             left = SqlString.escapeId(leftTable || filter.table) + '.' + left;
          }
-         let right = SqlString.escapeId(rightTok[i].trim());
+         const r = rightTok[i].trim();
+         let right = SqlString.escapeId(r);
          if (rightTable || filter.table) {
             right = SqlString.escapeId(rightTable || filter.table) + '.' + right;
          }
@@ -59,8 +60,22 @@ export default class Filter {
             field: left + '=' + right,
             operator: QueryConditionOperator_JOIN
          });
+         if (params) {
+            conds.push({
+               table: rightTable || filter.table,
+               field: r,
+               operator: QueryConditionOperator_EQUAL,
+               value: params[r]
+            });
+         }
       });
       return this.toWhere(filter);
+   }
+   /**
+    * create a simple join condition filter
+    */
+   static toJoin(filter, left, right, leftTable, rightTable) {
+      return this.toJoinWithParams(filter, left, right, leftTable, rightTable);
    }
    /**
     * create a filter prepending the key = value to the query

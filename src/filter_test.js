@@ -669,3 +669,10 @@ test('where join filter with multiple', t => {
       query: 'WHERE `x`.`a`=`y`.`c` AND `x`.`b`=`y`.`d`'
    });
 });
+
+test('where join filter with params', t => {
+   t.deepEqual(Filter.toJoinWithParams({xtable:'foo'}, 'a, b', 'c, d', 'x', 'y', {c:1, d:2}), {
+      params: [1, 2],
+      query: 'WHERE `x`.`a`=`y`.`c` AND `y`.`c` = ? AND `x`.`b`=`y`.`d` AND `y`.`d` = ?'
+   });
+});
