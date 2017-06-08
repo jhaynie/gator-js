@@ -22,7 +22,7 @@ test('empty', async t => {
          callback(null, []);
       }
    });
-   t.falsy(await Query.exec(db, 'select * from foo', [], MockClass, ['foo']));
+   t.falsy(await Query.exec(db, 'select * from foo', [], MockClass));
 });
 
 test('simple exec', async t => {
@@ -33,7 +33,7 @@ test('simple exec', async t => {
          }]);
       }
    });
-   t.deepEqual(await Query.exec(db, 'select * from foo', [], MockClass, ['foo']), [new MockClass({foo:'bar'})]);
+   t.deepEqual(await Query.exec(db, 'select * from foo', [], MockClass), [new MockClass({foo:'bar'})]);
 });
 
 test('error', async t => {
@@ -42,11 +42,24 @@ test('error', async t => {
          callback(new Error('error'));
       }
    });
-   const error = await t.throws(Query.exec(db, 'select * from foo', [], MockClass, ['foo']));
+   const error = await t.throws(Query.exec(db, 'select * from foo', MockClass, ['foo']));
    t.is(error.message, 'error');
 });
 
 test('escape', t => {
    t.is(Query.escape('abc'), `'abc'`);
    t.is(Query.escapeId('abc'), '`abc`');
+});
+
+test('filter rows', async t => {
+   const db = new MockDB({
+      query(sql, params, callback) {
+         callback(null, [{
+               foo: 'bar'
+         }]);
+      }
+   });
+   const fn = (row) => {row.params.count = 1; row};
+   const result = await Query.exec(db, 'select * from foo', [], MockClass, fn);
+   t.deepEqual(result, [new MockClass({count:1, foo:'bar'})]);
 });
