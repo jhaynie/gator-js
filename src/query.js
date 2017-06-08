@@ -22,7 +22,7 @@ export default class Query {
 						if (result && result.length) {
                      let rows = result.map(row => new Class(row));
                      if (cb && typeof(cb) === 'function') {
-                        rows = rows.map(row => cb(row) || row);
+                        rows = rows.map((row, i) => cb(row, result[i], i) || row);
                      }
 							return resolve(rows);
                   }

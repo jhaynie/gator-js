@@ -63,3 +63,16 @@ test('filter rows', async t => {
    const result = await Query.exec(db, 'select * from foo', [], MockClass, fn);
    t.deepEqual(result, [new MockClass({count:1, foo:'bar'})]);
 });
+
+test('filter rows with index', async t => {
+   const db = new MockDB({
+      query(sql, params, callback) {
+         callback(null, [{
+               foo: 'bar'
+         }]);
+      }
+   });
+   const fn = (row, rs, i) => { row.params.i = i; row };
+   const result = await Query.exec(db, 'select * from foo', [], MockClass, fn);
+   t.deepEqual(result, [new MockClass({i:0, foo:'bar'})]);
+});
