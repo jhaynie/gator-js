@@ -22,7 +22,7 @@ test('empty', async t => {
          callback(null, []);
       }
    });
-   t.falsy(await Query.exec(db, 'select * from foo', [], MockClass));
+   t.deepEqual(await Query.exec(db, 'select * from foo', [], MockClass), []);
 });
 
 test('simple exec', async t => {
@@ -75,4 +75,15 @@ test('filter rows with index', async t => {
    const fn = (row, rs, i) => { row.params.i = i; row };
    const result = await Query.exec(db, 'select * from foo', [], MockClass, fn);
    t.deepEqual(result, [new MockClass({i:0, foo:'bar'})]);
+});
+
+test('query always returns empty array', async t => {
+   const db = new MockDB({
+      query(sql, params, callback) {
+         callback();
+      }
+   });
+   const fn = (row, rs, i) => { row.params.i = i; row };
+   const result = await Query.exec(db, 'select * from foo', [], MockClass, fn);
+   t.deepEqual(result, []);
 });

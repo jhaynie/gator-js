@@ -26,7 +26,7 @@ export default class Query {
                      }
 							return resolve(rows);
                   }
-                  resolve();
+                  resolve([]);
                });
             } catch (ex) {
                reject(ex);
