@@ -462,6 +462,17 @@ test('order multiple', t => {
    });
 });
 
+test('order with table', t => {
+   const o = {
+      order: [{table:'foo', field:'bar'}]
+   };
+   t.deepEqual(Filter.toWhere(o), {
+      params: [],
+      query: 'ORDER BY `foo`.`bar` ASC'
+   });
+});
+
+
 test('prepend empty', t => {
    t.deepEqual(Filter.toWherePrepend(null, "a", "b"), {
       params: ['b'],

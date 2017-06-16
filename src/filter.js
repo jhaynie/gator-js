@@ -232,7 +232,8 @@ export default class Filter {
             sql += ' GROUP BY ' + filter.groupby;
          }
          if (filter.order) {
-            sql += ' ORDER BY ' + filter.order.map(o => '`' + o.field + '` ' + (o.direction === QueryDirection_DESCENDING ? 'DESC' : 'ASC')).join(', ');
+            const order = o => (o.table ? ('`' + o.table + '`.`' + o.field + '` ') : ('`' + o.field + '` ')) + (o.direction === QueryDirection_DESCENDING ? 'DESC' : 'ASC');
+            sql += ' ORDER BY ' + filter.order.map(order).join(', ');
          }
          if (filter.limit) {
             sql += ' LIMIT ' + filter.limit;
