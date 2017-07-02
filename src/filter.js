@@ -3,6 +3,8 @@ import SqlString from 'sqlstring';
 export const QueryDirection_ASCENDING = 'ASCENDING';
 export const QueryDirection_DESCENDING = 'DESCENDING';
 
+export const QueryConditionOperator_EQ = 'EQ';
+export const QueryConditionOperator_NOT_EQ = 'NOT_EQ';
 export const QueryConditionOperator_EQUAL = 'EQUAL';
 export const QueryConditionOperator_NOT_EQUAL = 'NOT_EQUAL';
 export const QueryConditionOperator_NULL = 'NULL';
@@ -135,11 +137,13 @@ export default class Filter {
                   }
                   sql += '`' + cd.field + '` ';
                   switch (cd.operator) {
+                     case QueryConditionOperator_EQ:
                      case QueryConditionOperator_EQUAL: {
                         sql += '= ?';
                         params.push(cd.value);
                         break;
                      }
+                     case QueryConditionOperator_NOT_EQ:
                      case QueryConditionOperator_NOT_EQUAL: {
                         sql += '!= ?';
                         params.push(cd.value);

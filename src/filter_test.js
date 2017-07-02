@@ -1,7 +1,9 @@
 import test from 'ava';
 import Filter from './filter';
 import {
+   QueryConditionOperator_EQ,
    QueryConditionOperator_EQUAL,
+   QueryConditionOperator_NOT_EQ,
    QueryConditionOperator_NOT_EQUAL,
    QueryConditionOperator_NULL,
    QueryConditionOperator_NOT_NULL,
@@ -685,5 +687,39 @@ test('where join filter with params', t => {
    t.deepEqual(Filter.toJoinWithParams({xtable:'foo'}, 'a, b', 'c, d', 'x', 'y', {c:1, d:2}), {
       params: [1, 2],
       query: 'WHERE `x`.`a`=`y`.`c` AND `y`.`c` = ? AND `x`.`b`=`y`.`d` AND `y`.`d` = ?'
+   });
+});
+
+test('where eq and not eq', t => {
+   const o = {
+      condition: [
+         {
+            conditions: [{
+               field: 'foo',
+               operator: QueryConditionOperator_EQ,
+               value: 'bar'
+            }]
+         }
+      ]
+   };
+   t.deepEqual(Filter.toWhere(o), {
+      params: ['bar'],
+      query: 'WHERE `foo` = ?'
+   });
+
+   const o2 = {
+      condition: [
+         {
+            conditions: [{
+               field: 'foo',
+               operator: QueryConditionOperator_NOT_EQ,
+               value: 'bar'
+            }]
+         }
+      ]
+   };
+   t.deepEqual(Filter.toWhere(o2), {
+      params: ['bar'],
+      query: 'WHERE `foo` != ?'
    });
 });
