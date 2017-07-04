@@ -27,7 +27,7 @@ export default class Query {
                         context.query_time = (context.query_time || 0) + Date.now() - ts;
                     }
                     if (!err && result) {
-                        context.total_records = (context.total_records || 0) + (Array.isArray(results) ? results.length : 1);
+                        context.total_records = (context.total_records || 0) + (Array.isArray(result) ? result.length : 1);
                     }
                   }
                   if (err) {
