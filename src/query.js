@@ -11,7 +11,7 @@ export default class Query {
    static escape(property) {
       return SqlString.escape(property);
    }
-   static exec(db, sql, params, Class, cb, context) {
+   static exec(db, sql, params, Class, cb, context, processor) {
       return new Promise (
          (resolve, reject) => {
             try {
@@ -32,6 +32,9 @@ export default class Query {
                   }
                   if (err) {
                      return reject(err);
+                  }
+                  if (processor && typeof(processor) === 'function') {
+                     return resolve(processor(result));
                   }
                   if (result && result.length) {
                      let rows = result.map(row => new Class(row, context));
