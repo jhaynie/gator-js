@@ -171,6 +171,7 @@ export class Table extends TableDefinition {
 export class SQL {
    constructor() {
       this.parts = [];
+      this.tables = {};
    }
    static now(alias) {
       return new ColumnExpression('now', null, alias).noescape();
@@ -296,13 +297,97 @@ export class SQL {
       this.parts.push(SQL.scopedColumnExpr(expr, table, column, alias));
       return this;
    }
+   _table(t, alias) {
+      if (typeof(t) === 'object' && typeof(t.table) === 'function') {
+         return {name: t.table(), alias: alias};
+      } else if (typeof(t) == 'object' && t instanceof TableDefinition) {
+         return {name: t.name, alias: t.alias || alias};
+      }
+      return {name: t, alias: alias};
+   }
+   _addtable(t, alias) {
+      const {name, _alias} = this._table(t, alias);
+      const n = SqlString.escapeId(name);
+      const k = alias || _alias ? n + ' ' + SqlString.escapeId(alias || _alias) : n;
+      if (k in this.tables) {
+         return false;
+      }
+      this.tables[k] = {table:name, alias:alias || _alias};
+      return true;
+   }
    all(...tables) {
+      tables.forEach(t => this._addtable(t));
       this.parts.push(new AllColumns(...tables))
       return this;
    }
    table(name, alias) {
+      this._addtable(name, alias);
       this.parts.push(new Table(name, alias));
       return this;
+   }
+   eq(col, value, table) {
+      this._addtable(table);
+      return this.filter(new Filter().eq(col, value, table));
+   }
+   neq(col, value, table) {
+      this._addtable(table);
+      return this.filter(new Filter().neq(col, value, table));
+   }
+   in(col, value, table) {
+      this._addtable(table);
+      return this.filter(new Filter().in(col, value, table));
+   }
+   nin(col, value, table) {
+      this._addtable(table);
+      return this.filter(new Filter().nin(col, value, table));
+   }
+   gt(col, value, table) {
+      this._addtable(table);
+      return this.filter(new Filter().gt(col, value, table));
+   }
+   lt(col, value, table) {
+      this._addtable(table);
+      return this.filter(new Filter().lt(col, value, table));
+   }
+   gte(col, value, table) {
+      this._addtable(table);
+      return this.filter(new Filter().gte(col, value, table));
+   }
+   lte(col, value, table) {
+      this._addtable(table);
+      return this.filter(new Filter().lte(col, value, table));
+   }
+   between(col, a, b, table) {
+      this._addtable(table);
+      return this.filter(new Filter().between(col, a, b, table));
+   }
+   nbetween(col, a, b, table) {
+      this._addtable(table);
+      return this.filter(new Filter().nbetween(col, a, b, table));
+   }
+   null(col, table) {
+      this._addtable(table);
+      return this.filter(new Filter().null(col, table));
+   }
+   notnull(col, table) {
+      this._addtable(table);
+      return this.filter(new Filter().notnull(col, table));
+   }
+   like(col, values, table) {
+      this._addtable(table);
+      return this.filter(new Filter().like(col, values, table));
+   }
+   nlike(col, values, table) {
+      this._addtable(table);
+      return this.filter(new Filter().nlike(col, values, table));
+   }
+   groupby(...cols) {
+      return this.filter(new Filter().group(...cols));
+   }
+   join(tableA, colA, tableB, colB) {
+      this._addtable(tableA);
+      this._addtable(tableB);
+      return this.filter(new Filter().join(tableA, colA, tableB, colB));
    }
    filter(...filters) {
       this.filters = this.filters || {condition:[]};
@@ -341,25 +426,29 @@ export class SQL {
       return this;
    }
    toSQL() {
-      const fields = [];
-      const tables = [], t = [];
+      const fields = [], f = [];
       this.parts.forEach(part => {
          if (part instanceof ColumnDefinition) {
             fields.push(part.toSQL());
          } else if (part instanceof TableDefinition) {
-            t.push(part);
-            tables.push(part.toSQL());
-         } else if (part instanceof Filter) {
-            t.push(part.toSQL());
+            this._addtable(part);
          } else {
             where.push(part);
          }
       });
-      if (!tables.length) {
+      Object.keys(this.tables).forEach(k => {
+         const e = this.tables[k];
+         if (e && e.alias) {
+            // if we have an alias, delete any non-alias table references
+            delete this.tables[SqlString.escapeId(e.table)];
+         }
+      });
+      const tables = Object.keys(this.tables);
+      if (tables.length === 0) {
          throw new Error('missing tables in SQL');
       }
       if (!fields.length) {
-         const alltables = t.map(td => td.name);
+         const alltables = Object.keys(this.tables).map(k => this.tables[k].table);
          fields.push(new AllColumns(...alltables).toSQL());
       }
       let where = {query: '', params: []};
@@ -422,8 +511,5 @@ export default class Query {
             }
          }
       );
-   }
-   static build(...objs) {
-      objs.forEach(o => console.log(o));
    }
 }

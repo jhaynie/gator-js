@@ -74,6 +74,9 @@ export default class Filter {
    like(key, values, table) {
       return this.cond(key, values, QueryConditionOperator_LIKE, table);
    }
+   nlike(key, values, table) {
+      return this.cond(key, values, QueryConditionOperator_NOT_LIKE, table);
+   }
    between(key, a, b, table) {
       return this.cond(key, a + ' AND ' + b, QueryConditionOperator_BETWEEN, table);
    }

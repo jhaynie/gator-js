@@ -255,7 +255,7 @@ test('sql datediff column expression with nesting', t => {
 
 test('sql datediff column expression with nesting and math', t => {
    const {sql} = new SQL().datediff(SQL.now(), SQL.from_unixtime(SQL.div('created_at', 1000))).table('foo').toSQL();
-	t.is(sql, 'SELECT datediff(now(), from_unixtime(`created_at`/1000)) FROM `foo`');
+   t.is(sql, 'SELECT datediff(now(), from_unixtime(`created_at`/1000)) FROM `foo`');
 });
 
 test('sql subtract', t => {
@@ -283,44 +283,43 @@ test('sql modulo', t => {
 	t.is(sql, 'SELECT now()%1000 FROM `foo`');
 });
 
+const Issue = {
+   table: () => 'issue',
+   ID: 'id',
+   REF_ID: 'ref_id',
+   REF_TYPE: 'ref_type',
+   CREATED_AT: 'created_at',
+   STATE: 'state',
+   CUSTOMER_ID: 'customer_id',
+};
+const JiraIssue = {
+   table: () => 'jira_issue',
+   ID: 'id',
+   REF_ID: 'ref_id',
+   REF_TYPE: 'ref_type',
+   PRIORITY_ID: 'priority_id',
+   STATUS_ID: 'status_id',
+   CUSTOMER_ID: 'customer_id',
+   ISSUE_TYPE_ID: 'issue_type_id'
+};
+const JiraIssuePriority = {
+   table: () => 'jira_issue_priority',
+   ID: 'id',
+   REF_ID: 'ref_id',
+   REF_TYPE: 'ref_type',
+   CUSTOMER_ID: 'customer_id',
+   NAME: 'name',
+};
+const JiraProjectStatus = {
+   table: () => 'jira_project_status',
+   ID: 'id',
+   REF_ID: 'ref_id',
+   REF_TYPE: 'ref_type',
+   CUSTOMER_ID: 'customer_id',
+   NAME: 'name',
+};
+
 test('complex sql', t => {
-
-   const Issue = {
-      table: () => 'issue',
-      ID: 'id',
-      REF_ID: 'ref_id',
-      REF_TYPE: 'ref_type',
-      CREATED_AT: 'created_at',
-      STATE: 'state',
-      CUSTOMER_ID: 'customer_id',
-   };
-   const JiraIssue = {
-      table: () => 'jira_issue',
-      ID: 'id',
-      REF_ID: 'ref_id',
-      REF_TYPE: 'ref_type',
-      PRIORITY_ID: 'priority_id',
-      STATUS_ID: 'status_id',
-      CUSTOMER_ID: 'customer_id',
-      ISSUE_TYPE_ID: 'issue_type_id'
-   };
-   const JiraIssuePriority = {
-      table: () => 'jira_issue_priority',
-      ID: 'id',
-      REF_ID: 'ref_id',
-      REF_TYPE: 'ref_type',
-      CUSTOMER_ID: 'customer_id',
-      NAME: 'name',
-   };
-   const JiraProjectStatus = {
-      table: () => 'jira_project_status',
-      ID: 'id',
-      REF_ID: 'ref_id',
-      REF_TYPE: 'ref_type',
-      CUSTOMER_ID: 'customer_id',
-      NAME: 'name',
-   };
-
    const {sql, params} = new SQL()
       .count(SQL.scopedColumn(Issue, Issue.ID), 'total')
       .avg(
@@ -354,6 +353,67 @@ test('complex sql', t => {
       .toSQL();
    t.is(sql, 'SELECT count(`issue`.`id`) as `total`, avg(datediff(now(), from_unixtime(`issue`.`created_at`/1000))) as `daysOpen`, `jira_issue_priority`.`name` as `priority`, `jira_project_status`.`name` as `status` FROM `issue`, `jira_issue`, `jira_issue_priority`, `jira_project_status` WHERE (`issue`.`ref_id` = `jira_issue`.`id`) AND (`issue`.`ref_type` = ?) AND (`jira_issue`.`priority_id` = `jira_issue_priority`.`id`) AND (`jira_issue`.`status_id` = `jira_project_status`.`id`) AND (`issue`.`state` = ?) AND (`issue`.`customer_id` = ?) AND (`jira_issue`.`issue_type_id` = ?) GROUP BY priority, status');
    t.deepEqual(params, ['REF_TYPE_HERE', 'STATE_VALUE_HERE', 'CUSTOMER_ID_HERE', 'ISSUE_TYPE_HERE']);
+});
+
+test('complex sql terse', t => {
+   const {sql, params} = new SQL()
+      .count(SQL.scopedColumn(Issue, Issue.ID), 'total')
+      .avg(
+         SQL.datediff(
+            SQL.now(),
+            SQL.from_unixtime(
+               SQL.div(
+                  SQL.scopedColumn(Issue, Issue.CREATED_AT),
+                  1000
+               )
+            )
+         ),
+         'daysOpen'
+      )
+      .scopedColumn(JiraIssuePriority, JiraIssuePriority.NAME, 'priority')
+      .scopedColumn(JiraProjectStatus, JiraProjectStatus.NAME, 'status')
+      .join(Issue, Issue.REF_ID, JiraIssue, JiraIssue.ID)
+      .join(JiraIssue, JiraIssue.PRIORITY_ID, JiraIssuePriority, JiraIssuePriority.ID)
+      .join(JiraIssue, JiraIssue.STATUS_ID, JiraProjectStatus, JiraProjectStatus.ID)
+      .eq(Issue.REF_TYPE, 'REF_TYPE_HERE', Issue)
+      .eq(Issue.STATE, 'STATE_VALUE_HERE', Issue)
+      .eq(Issue.CUSTOMER_ID, 'CUSTOMER_ID_HERE', Issue)
+      .eq(JiraIssue.ISSUE_TYPE_ID, 'ISSUE_TYPE_HERE', JiraIssue)
+      .groupby('priority', 'status')
+      .toSQL();
+   t.is(sql, 'SELECT count(`issue`.`id`) as `total`, avg(datediff(now(), from_unixtime(`issue`.`created_at`/1000))) as `daysOpen`, `jira_issue_priority`.`name` as `priority`, `jira_project_status`.`name` as `status` FROM `issue`, `jira_issue`, `jira_issue_priority`, `jira_project_status` WHERE (`issue`.`ref_id` = `jira_issue`.`id`) AND (`jira_issue`.`priority_id` = `jira_issue_priority`.`id`) AND (`jira_issue`.`status_id` = `jira_project_status`.`id`) AND (`issue`.`ref_type` = ?) AND (`issue`.`state` = ?) AND (`issue`.`customer_id` = ?) AND (`jira_issue`.`issue_type_id` = ?) GROUP BY priority, status');
+   t.deepEqual(params, ['REF_TYPE_HERE', 'STATE_VALUE_HERE', 'CUSTOMER_ID_HERE', 'ISSUE_TYPE_HERE']);
+});
+
+test('complex sql terse with filter', t => {
+   const filter = new Filter().eq(Issue.CUSTOMER_ID, 'CUSTOMER_ID_HERE', Issue);
+   const {sql, params} = new SQL()
+      .count(SQL.scopedColumn(Issue, Issue.ID), 'total')
+      .avg(
+         SQL.datediff(
+            SQL.now(),
+            SQL.from_unixtime(
+               SQL.div(
+                  SQL.scopedColumn(Issue, Issue.CREATED_AT),
+                  1000
+               )
+            )
+         ),
+         'daysOpen'
+      )
+      .scopedColumn(JiraIssuePriority, JiraIssuePriority.NAME, 'priority')
+      .scopedColumn(JiraProjectStatus, JiraProjectStatus.NAME, 'status')
+      .join(Issue, Issue.REF_ID, JiraIssue, JiraIssue.ID)
+      .join(JiraIssue, JiraIssue.PRIORITY_ID, JiraIssuePriority, JiraIssuePriority.ID)
+      .join(JiraIssue, JiraIssue.STATUS_ID, JiraProjectStatus, JiraProjectStatus.ID)
+      .filter(filter)
+      .eq(Issue.REF_TYPE, 'REF_TYPE_HERE', Issue)
+      .eq(Issue.STATE, 'STATE_VALUE_HERE', Issue)
+      .eq(JiraIssue.ISSUE_TYPE_ID, 'ISSUE_TYPE_HERE', JiraIssue)
+      .groupby('priority', 'status')
+      .toSQL();
+   t.is(sql, 'SELECT count(`issue`.`id`) as `total`, avg(datediff(now(), from_unixtime(`issue`.`created_at`/1000))) as `daysOpen`, `jira_issue_priority`.`name` as `priority`, `jira_project_status`.`name` as `status` FROM `issue`, `jira_issue`, `jira_issue_priority`, `jira_project_status` WHERE (`issue`.`ref_id` = `jira_issue`.`id`) AND (`jira_issue`.`priority_id` = `jira_issue_priority`.`id`) AND (`jira_issue`.`status_id` = `jira_project_status`.`id`) AND (`issue`.`customer_id` = ?) AND (`issue`.`ref_type` = ?) AND (`issue`.`state` = ?) AND (`jira_issue`.`issue_type_id` = ?) GROUP BY priority, status');
+   t.deepEqual(params, ['CUSTOMER_ID_HERE', 'REF_TYPE_HERE', 'STATE_VALUE_HERE', 'ISSUE_TYPE_HERE']);
 });
 
 /*
