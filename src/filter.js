@@ -30,6 +30,110 @@ export const QueryConditionGroupOperator_OR = 'OR';
  * @class
  */
 export default class Filter {
+   constructor() {
+      this.filter = {condition: []};
+   }
+   cond(key, value, operator = QueryConditionOperator_EQ, table) {
+      if (table && typeof(table) === 'object' && typeof(table.table) === 'function') {
+         table = table.table();
+      }
+      this.filter.condition.push({
+         conditions:[{
+            field: key,
+            value: value,
+            operator: operator,
+            table: table
+         }]
+      });
+      return this;
+   }
+   eq(key, value, table) {
+      return this.cond(key, value, QueryConditionOperator_EQ, table);
+   }
+   neq(key, value, table) {
+      return this.cond(key, value, QueryConditionOperator_NOT_EQ, table);
+   }
+   gt(key, value, table) {
+      return this.cond(key, value, QueryConditionOperator_GREATER, table);
+   }
+   gte(key, value, table) {
+      return this.cond(key, value, QueryConditionOperator_GREATER_EQ, table);
+   }
+   lt(key, value, table) {
+      return this.cond(key, value, QueryConditionOperator_LESS, table)
+   }
+   lte(key, value, table) {
+      return this.cond(key, value, QueryConditionOperator_LESS_EQ, table);
+   }
+   in(key, values, table) {
+      return this.cond(key, values, QueryConditionOperator_IN, table);
+   }
+   nin(key, values, table) {
+      return this.cond(key, values, QueryConditionOperator_NOT_IN, table);
+   }
+   like(key, values, table) {
+      return this.cond(key, values, QueryConditionOperator_LIKE, table);
+   }
+   between(key, a, b, table) {
+      return this.cond(key, a + ' AND ' + b, QueryConditionOperator_BETWEEN, table);
+   }
+   nbetween(key, a, b, table) {
+      return this.cond(key, a + ' AND ' + b, QueryConditionOperator_NOT_BETWEEN, table);
+   }
+   null(key, table) {
+      return this.cond(key, null, QueryConditionOperator_NULL, table);
+   }
+   notnull(key, table) {
+      return this.cond(key, null, QueryConditionOperator_NOT_NULL, table);
+   }
+   join(aTable, aColumn, bTable, bColumn) {
+      let left = SqlString.escapeId(aColumn);
+      if (aTable || this.table) {
+         if (typeof(aTable) === 'object' && typeof(aTable.table) === 'function') {
+            aTable = aTable.table();
+         }
+         left = SqlString.escapeId(aTable || this.table) + '.' + left;
+      }
+      let right = SqlString.escapeId(bColumn);
+      if (bTable || this.table) {
+         if (typeof(bTable) === 'object' && typeof(bTable.table) === 'function') {
+            bTable = bTable.table();
+         }
+         right = SqlString.escapeId(bTable || this.table) + '.' + right;
+      }
+      this.filter.condition.push({
+         conditions:[{
+            field: left + ' = ' + right,
+            operator: QueryConditionOperator_JOIN,
+         }]
+      });
+      return this;
+   }
+   group(...groups) {
+      this.filter.groupby = groups.join(', ');
+      return this;
+   }
+   orderby(column, direction = QueryDirection_DESCENDING, table = this.table) {
+      this.filter.order = this.filter.order || [];
+      this.filter.order.push({
+         field: column,
+         table: table,
+         direction: direction
+      });
+      return this;
+   }
+   limit(offset, total) {
+      if (arguments.length === 2) {
+         this.filter.range = {offset: offset, limit: total};
+      } else {
+         this.filter.limit = offset;
+      }
+      return this;
+   }
+   toSQL() {
+      // console.log(JSON.stringify(this.filter, null, 2));
+      return Filter.toWhere(this.filter);
+   }
    /**
     * create a simple join filter which includes params from the right table
     */

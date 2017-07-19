@@ -723,3 +723,27 @@ test('where eq and not eq', t => {
       query: 'WHERE `foo` != ?'
    });
 });
+
+test('filter instance equals', t => {
+   const filter = new Filter().eq('a', 'b').toSQL();
+   t.deepEqual(filter, {
+      params: ['b'],
+      query: 'WHERE `a` = ?'
+   });
+});
+
+test('filter instance not equals', t => {
+   const filter = new Filter().neq('a', 'b').toSQL();
+   t.deepEqual(filter, {
+      params: ['b'],
+      query: 'WHERE `a` != ?'
+   });
+});
+
+test('filter instance with join', t => {
+   const filter = new Filter().join('a', 'afield', 'b', 'bfield').toSQL();
+   t.deepEqual(filter, {
+      params: [],
+      query: 'WHERE `a`.`afield` = `b`.`bfield`'
+   });
+});
