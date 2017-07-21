@@ -547,3 +547,14 @@ test('date interval subtraction', t => {
 	t.is(sql, 'SELECT count(`project_id`) as `total`, `issue`.`project_id`, `issue`.`state`, avg(datediff(from_unixtime(`issue`.`created_at`/1000), from_unixtime(`issue`.`closed_at`/1000))) as `time_to_close`, `name` FROM `issue`, `issue_project` WHERE (`issue`.`project_id` = `issue_project`.`id`) AND (`issue`.`ref_type` = ?) AND (from_unixtime(`issue`.`created_at`/1000) > now()-INTERVAL 7 day) GROUP BY project_id, state, name');
 	t.deepEqual(params, ['github']);
 });
+
+test('utils function', t => {
+	const maxDate = (column, table) => SQL.max(SQL.from_unixtime(SQL.div(SQL.scopedColumn(table, column), 1000)));
+	const daysFromMaxDateToNow = (column, table, alias) => SQL.datediff(SQL.now(), maxDate(column, table), alias);
+	const {sql} = new SQL({}, Issue)
+		.column(Issue.PROJECT_ID)
+		.columnExpr(daysFromMaxDateToNow(Issue.CREATED_AT, Issue, 'days'))
+		.groupby(Issue.PROJECT_ID).toSQL();
+	t.is(sql, 'SELECT `project_id`, datediff(now(), max(from_unixtime(`issue`.`created_at`/1000))) as `days` FROM `issue` GROUP BY project_id');
+});
+

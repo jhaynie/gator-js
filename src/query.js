@@ -78,7 +78,11 @@ export class ColumnExpression extends ColumnDefinition {
                }
             }
          } else {
-            sql = this.expr + '()';
+            if (this.expr && this.expr.toSQL) {
+               sql = this.expr.toSQL();
+            } else {
+               sql = this.expr + '()';
+            }
          }
       }
       if (this.alias) {
