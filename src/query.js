@@ -165,9 +165,12 @@ export class Table extends TableDefinition {
  * SQL builder
  */
 export class SQL {
-   constructor() {
+   constructor(context, cls) {
       this.parts = [];
       this.tables = {};
+      if (context && cls && context.filterAugmentation) {
+         this.filter(context.filterAugmentation(null, context, cls));
+      }
    }
    static now(alias) {
       return new ColumnExpression('now', null, alias).noescape();
@@ -386,6 +389,12 @@ export class SQL {
       let orders = [], limits = [];
       let range;
       filters.forEach(f => {
+         // see if this is the incoming JSON style vs. new Filter style and support it
+         if (f.condition) {
+            const o = {filter:{}};
+            Object.keys(f).forEach(k => o.filter[k] = f[k]);
+            f = o;
+         }
          if (f.filter.condition && f.filter.condition.length) {
             this.filters.condition = this.filters.condition.concat(f.filter.condition);
          }

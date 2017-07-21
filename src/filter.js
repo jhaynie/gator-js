@@ -26,7 +26,7 @@ export const QueryConditionGroupOperator_OR = 'OR';
 
 // support table coming from either a function, a static getter or just a value itself
 export const tablename = (o) => {
-   const t = typeof(o) !== 'string';
+   const t = o && typeof(o) !== 'string';
    if (t) {
       const tt = typeof(o.table);
       switch(tt) {
