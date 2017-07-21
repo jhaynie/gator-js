@@ -289,8 +289,15 @@ const Issue = {
 	REF_ID: 'ref_id',
 	REF_TYPE: 'ref_type',
 	CREATED_AT: 'created_at',
+	CLOSED_AT: 'closed_at',
 	STATE: 'state',
 	CUSTOMER_ID: 'customer_id',
+	PROJECT_ID: 'project_id'
+};
+const IssueProject = {
+	table:() => 'issue_project',
+	ID: 'id',
+	NAME: 'name'
 };
 const JiraIssue = {
 	table: () => 'jira_issue',
@@ -458,4 +465,85 @@ test('pass context into SQL and use filterAugmentation function', t => {
 		.toSQL();
 	t.is(sql, 'SELECT count(`issue`.`id`) as `total`, avg(datediff(now(), from_unixtime(`issue`.`created_at`/1000))) as `daysOpen`, `jira_issue_priority`.`name` as `priority`, `jira_project_status`.`name` as `status` FROM `issue`, `jira_issue`, `jira_issue_priority`, `jira_project_status` WHERE (`issue`.`customer_id` = ?) AND (`issue`.`ref_id` = `jira_issue`.`id`) AND (`jira_issue`.`priority_id` = `jira_issue_priority`.`id`) AND (`jira_issue`.`status_id` = `jira_project_status`.`id`) AND (`issue`.`ref_type` = ?) AND (`issue`.`state` = ?) AND (`jira_issue`.`issue_type_id` = ?) GROUP BY priority, status');
 	t.deepEqual(params, ['CUSTOMER_ID_HERE', 'REF_TYPE_HERE', 'STATE_VALUE_HERE', 'ISSUE_TYPE_HERE']);
+});
+
+test('implicit table from constructor', t => {
+	const {sql, params} = new SQL({}, Issue)
+		.column(Issue.PROJECT_ID)
+		.datediff(
+			SQL.now(),
+			SQL.max(
+				SQL.from_unixtime(
+					SQL.div(
+						SQL.scopedColumn(Issue, Issue.CREATED_AT),
+						1000
+					)
+				),
+			),
+			'days'
+		)
+		.groupby(Issue.PROJECT_ID).toSQL();
+	t.is(sql, 'SELECT `project_id`, datediff(now(), max(from_unixtime(`issue`.`created_at`/1000))) as `days` FROM `issue` GROUP BY project_id');
+});
+
+test('greater than field', t => {
+	const {sql, params} = new SQL({}, Issue)
+		.gt(Issue.CREATED_AT, '1234')
+		.toSQL();
+	t.is(sql, 'SELECT * FROM `issue` WHERE `created_at` > ?');
+	t.deepEqual(params, ['1234']);
+});
+
+test('greater than with column expression', t => {
+	const {sql, params} = new SQL({}, Issue)
+		.gt(
+			SQL.from_unixtime(SQL.div(Issue.CREATED_AT, 1000)),
+			SQL.now()
+		)
+		.toSQL();
+	t.is(sql, 'SELECT * FROM `issue` WHERE from_unixtime(`created_at`/1000) > now()');
+	t.deepEqual(params, []);
+});
+
+test('epoch seconds', t => {
+	const {sql, params} = new SQL({}, Issue)
+		.epochSeconds()
+		.toSQL();
+	t.is(sql, 'SELECT UNIX_TIMESTAMP() FROM `issue`');
+	t.deepEqual(params, []);
+});
+
+test('date diff seconds', t => {
+	const {sql, params} = new SQL({}, Issue)
+		.datediffEpoch(Issue.CLOSED_AT, Issue.CREATED_AT, Issue)
+		.toSQL();
+	t.is(sql, 'SELECT datediff(from_unixtime(`issue`.`closed_at`/1000), from_unixtime(`issue`.`created_at`/1000)) FROM `issue`');
+	t.deepEqual(params, []);
+});
+
+test('date diff seconds alias', t => {
+	const {sql, params} = new SQL({}, Issue)
+		.datediffEpoch(Issue.CLOSED_AT, Issue.CREATED_AT, Issue, 'time')
+		.toSQL();
+	t.is(sql, 'SELECT datediff(from_unixtime(`issue`.`closed_at`/1000), from_unixtime(`issue`.`created_at`/1000)) as `time` FROM `issue`');
+	t.deepEqual(params, []);
+});
+
+test('date interval subtraction', t => {
+	const q = new SQL({}, Issue)
+		.count(Issue.PROJECT_ID, 'total')
+		.scopedColumn(Issue, Issue.PROJECT_ID)
+		.scopedColumn(Issue, Issue.STATE)
+		.avg(SQL.datediffEpoch(Issue.CREATED_AT, Issue.CLOSED_AT, Issue), 'time_to_close')
+		.column(IssueProject.NAME)
+		.join(Issue, Issue.PROJECT_ID, IssueProject, IssueProject.ID)
+		.eq(Issue.REF_TYPE, 'github', Issue)
+		.groupby(Issue.PROJECT_ID, Issue.STATE, IssueProject.NAME);
+	q.gt(
+		SQL.from_unixtime(SQL.div(Issue.CREATED_AT, 1000, Issue)),
+		SQL.sub(SQL.now(), 'INTERVAL 7 day')
+	);
+	const {sql, params} = q.toSQL();
+	t.is(sql, 'SELECT count(`project_id`) as `total`, `issue`.`project_id`, `issue`.`state`, avg(datediff(from_unixtime(`issue`.`created_at`/1000), from_unixtime(`issue`.`closed_at`/1000))) as `time_to_close`, `name` FROM `issue`, `issue_project` WHERE (`issue`.`project_id` = `issue_project`.`id`) AND (`issue`.`ref_type` = ?) AND (from_unixtime(`issue`.`created_at`/1000) > now()-INTERVAL 7 day) GROUP BY project_id, state, name');
+	t.deepEqual(params, ['github']);
 });

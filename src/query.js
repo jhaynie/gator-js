@@ -1,6 +1,6 @@
 import SqlString from 'sqlstring';
 import Filter from './filter';
-import {tablename} from './filter';
+import {tablename, expression} from './filter';
 
 // marker interfaces
 class SQLDefinition {
@@ -10,6 +10,14 @@ class SQLDefinition {
 class ColumnDefinition extends SQLDefinition {
    constructor() {
       super();
+   }
+   noescape() {
+      this.dontescape = true;
+      return this;
+   }
+   noinvoke() {
+      this.dontinvoke = true;
+      return this;
    }
 }
 class TableDefinition extends SQLDefinition {
@@ -25,17 +33,12 @@ export class Column extends ColumnDefinition {
       super();
       this.name = name;
       this.alias = alias;
-      this.dontescape = false;
-   }
-   noescape() {
-      this.dontescape = true;
-      return this;
    }
    toSQL() {
       if (this.alias) {
          return SqlString.escapeId(this.name) + ' as ' + SqlString.escapeId(this.alias);
       }
-      if (this.dontescape || this.name[0] === '`') {
+      if (this.dontescape || this.name && this.name[0] === '`') {
          return this.name;
       }
       return SqlString.escapeId(this.name);
@@ -52,31 +55,31 @@ export class ColumnExpression extends ColumnDefinition {
       this.column = column;
       this.alias = alias;
    }
-   noescape() {
-      this.noescape = true;
-      return this;
-   }
    toSQL() {
       let sql;
-      if (this.column) {
-         if (Array.isArray(this.column)) {
-            const col = this.column.map(c => {
-               if (c instanceof ColumnDefinition) {
-                  return c.toSQL();
-               }
-               return SqlString.escapeId(c);
-            });
-            sql = this.expr + '(' + col.join(', ') + ')';
-         } else {
-            if (this.column instanceof ColumnDefinition) {
-               sql = this.expr + '(' + this.column.toSQL() + ')';
-            } else {
-               let col = this.column === '*' ? '*' : SqlString.escapeId(this.column);
-               sql = this.expr + '(' + col + ')';
-            }
-         }
+      if (this.dontinvoke) {
+         sql = this.expr;
       } else {
-         sql = this.expr + '()';
+         if (this.column) {
+            if (Array.isArray(this.column)) {
+               const col = this.column.map(c => {
+                  if (c instanceof ColumnDefinition) {
+                     return c.toSQL();
+                  }
+                  return SqlString.escapeId(c);
+               });
+               sql = this.expr + '(' + col.join(', ') + ')';
+            } else {
+               if (this.column instanceof ColumnDefinition) {
+                  sql = this.expr + '(' + this.column.toSQL() + ')';
+               } else {
+                  let col = this.column === '*' ? '*' : SqlString.escapeId(this.column);
+                  sql = this.expr + '(' + col + ')';
+               }
+            }
+         } else {
+            sql = this.expr + '()';
+         }
       }
       if (this.alias) {
          sql += ' as ' + SqlString.escapeId(this.alias);
@@ -97,7 +100,7 @@ export class ScopedColumn extends ColumnDefinition {
       this.table = tablename(table);
    }
    toSQL() {
-      let sql = SqlString.escapeId(this.table) + '.' + SqlString.escapeId(this.column);
+      let sql = SqlString.escapeId(this.table) + '.' + (this.dontescape ? this.column : SqlString.escapeId(this.column));
       if (this.alias) {
          sql += ' as ' + SqlString.escapeId(this.alias);
       }
@@ -117,8 +120,32 @@ export class ScopedColumnExpression extends ColumnDefinition {
       this.alias = alias;
    }
    toSQL() {
-      let col = SqlString.escapeId(this.table) + '.' + SqlString.escapeId(this.column);
-      let sql = this.expr + '(' + col + ')';
+      let sql;
+      if (this.dontinvoke) {
+         sql = this.expr;
+      } else {
+         const prefix = SqlString.escapeId(this.table) + '.';
+         if (this.column) {
+            if (Array.isArray(this.column)) {
+               const col = this.column.map(c => {
+                  if (c instanceof ColumnDefinition) {
+                     return c.toSQL();
+                  }
+                  return prefix + SqlString.escapeId(c);
+               });
+               sql = this.expr + '(' + col.join(', ') + ')';
+            } else {
+               if (this.column instanceof ColumnDefinition) {
+                  sql = this.expr + '(' + this.column.toSQL() + ')';
+               } else {
+                  let col = this.column === '*' ? '*' : SqlString.escapeId(this.column);
+                  sql = this.expr + '(' + prefix + col + ')';
+               }
+            }
+         } else {
+            sql = this.expr + '()';
+         }
+      }
       if (this.alias) {
          sql += ' as ' + SqlString.escapeId(this.alias);
       }
@@ -168,12 +195,16 @@ export class SQL {
    constructor(context, cls) {
       this.parts = [];
       this.tables = {};
+      this.cls = cls;
       if (context && cls && context.filterAugmentation) {
          this.filter(context.filterAugmentation(null, context, cls));
       }
    }
    static now(alias) {
       return new ColumnExpression('now', null, alias).noescape();
+   }
+   static epochSeconds(alias) {
+      return new ColumnExpression('UNIX_TIMESTAMP()', null, alias).noinvoke();
    }
    static count(column, alias) {
       return new ColumnExpression('count', column || '*', alias);
@@ -193,28 +224,41 @@ export class SQL {
    static datediff(from, to, alias) {
       return new ColumnExpression('datediff', [from, to], alias);
    }
+   static datediffEpoch(from, to, table, alias) {
+      from = expression(from);
+      to = expression(to);
+      if (table) {
+         const f = SqlString.escapeId(tablename(table)) + '.' + from;
+         const t = SqlString.escapeId(tablename(table)) + '.' + to;
+         return new ScopedColumnExpression('datediff(from_unixtime('+f+'/1000), from_unixtime('+t+'/1000))', table, '', alias).noinvoke();
+      } else {
+         return new ColumnExpression('datediff(from_unixtime('+from+'/1000), from_unixtime('+to+'/1000))', table, '', alias).noinvoke();
+      }
+   }
    static from_unixtime(column, alias) {
       return new ColumnExpression('from_unixtime', column, alias);
    }
-   static div(col, value) {
-      col = col instanceof ColumnDefinition ? col.toSQL() : SqlString.escapeId(col);
-      return new Column(col + '/' + value).noescape();
+   static expr(op, col, value, table, alias) {
+      col = expression(col);
+      if (table) {
+         return new ScopedColumn(table, col + op + value, alias).noescape();
+      }
+      return new Column(col + op + value).noescape();
    }
-   static mul(col, value) {
-      col = col instanceof ColumnDefinition ? col.toSQL() : SqlString.escapeId(col);
-      return new Column(col + '*' + value).noescape();
+   static div(col, value, table, alias) {
+      return this.expr('/', col, value, table, alias);
    }
-   static add(col, value) {
-      col = col instanceof ColumnDefinition ? col.toSQL() : SqlString.escapeId(col);
-      return new Column(col + '+' + value).noescape();
+   static mul(col, value, table, alias) {
+      return this.expr('*', col, value, table, alias);
    }
-   static sub(col, value) {
-      col = col instanceof ColumnDefinition ? col.toSQL() : SqlString.escapeId(col);
-      return new Column(col + '-' + value).noescape();
+   static add(col, value, table, alias) {
+      return this.expr('+', col, value, table, alias);
    }
-   static mod(col, value) {
-      col = col instanceof ColumnDefinition ? col.toSQL() : SqlString.escapeId(col);
-      return new Column(col + '%' + value).noescape();
+   static sub(col, value, table, alias) {
+      return this.expr('-', col, value, table, alias);
+   }
+   static mod(col, value, table, alias) {
+      return this.expr('%', col, value, table, alias);
    }
    static column(name, alias) {
       return new Column(name, alias);
@@ -272,12 +316,16 @@ export class SQL {
       this.parts.push(SQL.now(alias));
       return this;
    }
+   datediffEpoch(from, to, table, alias) {
+      this.parts.push(SQL.datediffEpoch(from, to, table, alias));
+      return this;
+   }
    datediff(from, to, alias) {
       this.parts.push(SQL.datediff(from, to, alias));
       return this;
    }
    from_unixtime(column, alias) {
-      this.parts.push(SQL.from_unixtime(colum, alias));
+      this.parts.push(SQL.from_unixtime(column, alias));
       return this;
    }
    column(name, alias) {
@@ -296,10 +344,17 @@ export class SQL {
       this.parts.push(SQL.scopedColumnExpr(expr, table, column, alias));
       return this;
    }
+   epochSeconds(alias) {
+      this.parts.push(SQL.epochSeconds(alias));
+      return this;
+   }
    _table(t, alias) {
       return {name: tablename(t), alias: alias};
    }
    _addtable(t, alias) {
+      if (!t) {
+         return false;
+      }
       const {name, _alias} = this._table(t, alias);
       const n = SqlString.escapeId(name);
       const k = alias || _alias ? n + ' ' + SqlString.escapeId(alias || _alias) : n;
@@ -443,9 +498,17 @@ export class SQL {
             delete this.tables[SqlString.escapeId(e.table)];
          }
       });
-      const tables = Object.keys(this.tables);
+      let tables = Object.keys(this.tables);
       if (tables.length === 0) {
-         throw new Error('missing tables in SQL');
+         if (this.cls) {
+            const t = SqlString.escapeId(tablename(this.cls));
+            if (t) {
+               tables = [t];
+            }
+         }
+         if (tables.length === 0) {
+            throw new Error('missing tables in SQL');
+         }
       }
       if (!fields.length) {
          const alltables = Object.keys(this.tables).map(k => this.tables[k].table);

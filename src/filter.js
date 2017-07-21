@@ -45,6 +45,14 @@ export const tablename = (o) => {
    return o;
 };
 
+// handle converting expressions
+export const expression = (o) => {
+   if (o instanceof Object && o.toSQL) {
+      return o.toSQL();
+   }
+   return SqlString.escapeId(o);
+}
+
 /**
  * SQL Filter helper class
  * 
@@ -252,22 +260,38 @@ export default class Filter {
                const cond = filter.condition[c];
                const groupparams = [];
                const stmt = cond.conditions.map(cd => {
-                  let sql = '', pvalue;
+                  let sql = '', pvalue, usevalue;
                   if (cd.table || filter.table) {
                      sql += '`' + (tablename(cd.table) || filter.table) + '`.';
                   }
-                  sql += '`' + cd.field + '` ';
+                  if (cd.field instanceof Object && cd.field.toSQL) {
+                     sql += cd.field.toSQL() + ' ';
+                  } else {
+                     sql += '`' + cd.field + '` ';
+                  }
+                  if (cd.value instanceof Object && cd.value.toSQL) {
+                     cd.value = cd.value.toSQL()
+                     usevalue = true
+                  }
                   switch (cd.operator) {
                      case QueryConditionOperator_EQ:
                      case QueryConditionOperator_EQUAL: {
-                        sql += '= ?';
-                        pvalue = cd.value;
+                        if (usevalue) {
+                           sql += '= ' + cd.value;
+                        } else {
+                           sql += '= ?';
+                           pvalue = cd.value;
+                        }
                         break;
                      }
                      case QueryConditionOperator_NOT_EQ:
                      case QueryConditionOperator_NOT_EQUAL: {
-                        sql += '!= ?';
-                        pvalue = cd.value;
+                        if (usevalue) {
+                           sql += '!= ' + cd.value;
+                        } else {
+                           sql += '!= ?';
+                           pvalue = cd.value;
+                        }
                         break;
                      }
                      case QueryConditionOperator_NULL: {
@@ -279,33 +303,57 @@ export default class Filter {
                         break;
                      }
                      case QueryConditionOperator_GREATER: {
-                        sql += '> ?';
-                        pvalue = cd.value;
+                        if (usevalue) {
+                           sql += '> ' + cd.value;
+                        } else {
+                           sql += '> ?';
+                           pvalue = cd.value;
+                        }
                         break;
                      }
                      case QueryConditionOperator_GREATER_EQ: {
-                        sql += '>= ?';
-                        pvalue = cd.value;
+                        if (usevalue) {
+                           sql += '>= ' + cd.value;
+                        } else {
+                           sql += '>= ?';
+                           pvalue = cd.value;
+                        }
                         break;
                      }
                      case QueryConditionOperator_LESS: {
-                        sql += '< ?';
-                        pvalue = cd.value;
+                        if (usevalue) {
+                           sql += '< ' + cd.value;
+                        } else {
+                           sql += '< ?';
+                           pvalue = cd.value;
+                        }
                         break;
                      }
                      case QueryConditionOperator_LESS_EQ: {
-                        sql += '<= ?';
-                        pvalue = cd.value;
+                        if (usevalue) {
+                           sql += '<= ' + cd.value;
+                        } else {
+                           sql += '<= ?';
+                           pvalue = cd.value;
+                        }
                         break;
                      }
                      case QueryConditionOperator_IN: {
-                        sql += 'IN (?)';
-                        pvalue = cd.value;
+                        if (usevalue) {
+                           sql += 'IN (' + cd.value + ')';
+                        } else {
+                           sql += 'IN (?)';
+                           pvalue = cd.value;
+                        }
                         break;
                      }
                      case QueryConditionOperator_NOT_IN: {
-                        sql += 'NOT IN (?)';
-                        pvalue = cd.value;
+                        if (usevalue) {
+                           sql += 'NOT IN (' + cd.value + ')';
+                        } else {
+                           sql += 'NOT IN (?)';
+                           pvalue = cd.value;
+                        }
                         break;
                      }
                      case QueryConditionOperator_BETWEEN: {
@@ -325,13 +373,21 @@ export default class Filter {
                         break;
                      }
                      case QueryConditionOperator_LIKE : {
-                        sql += 'LIKE ?';
-                        pvalue = cd.value;
+                        if (usevalue) {
+                           sql += 'LIKE ' + cd.value;
+                        } else {
+                           sql += 'LIKE ?';
+                           pvalue = cd.value;
+                        }
                         break;
                      }
                      case QueryConditionOperator_NOT_LIKE : {
-                        sql += 'NOT LIKE ?';
-                        pvalue = cd.value;
+                        if (usevalue) {
+                           sql += 'NOT LIKE ' + cd.value;
+                        } else {
+                           sql += 'NOT LIKE ?';
+                           pvalue = cd.value;
+                        }
                         break;
                      }
                      case QueryConditionOperator_JOIN: {
