@@ -1,5 +1,6 @@
 import SqlString from 'sqlstring';
 import Filter from './filter';
+import {tablename} from './filter';
 
 // marker interfaces
 class SQLDefinition {
@@ -93,9 +94,7 @@ export class ScopedColumn extends ColumnDefinition {
       this.table = table;
       this.column = column;
       this.alias = alias;
-      if (typeof(this.table) === 'object' && typeof(this.table.table) === 'function') {
-         this.table = this.table.table();
-      }
+      this.table = tablename(table);
    }
    toSQL() {
       let sql = SqlString.escapeId(this.table) + '.' + SqlString.escapeId(this.column);
@@ -113,7 +112,7 @@ export class ScopedColumnExpression extends ColumnDefinition {
    constructor(expr, table, column, alias) {
       super();
       this.expr = expr;
-      this.table = table;
+      this.table = tablename(table);
       this.column = column;
       this.alias = alias;
    }
@@ -137,7 +136,7 @@ export class AllColumns extends ColumnDefinition {
    }
    toSQL() {
       if (this.tables && this.tables.length > 1) {
-         return this.tables.map(table => SqlString.escapeId(table) + '.*').join(', ');
+         return this.tables.map(table => SqlString.escapeId(tablename(table)) + '.*').join(', ');
       }
       return '*';
    }
@@ -151,10 +150,7 @@ export class Table extends TableDefinition {
       super();
       this.name = name;
       this.alias = alias;
-      // if we pass in a class or an object that defines a table function
-      if (typeof(this.name) === 'object' && typeof(this.name.table) === 'function') {
-         this.name = this.name.table();
-      }
+      this.name = tablename(name);
    }
    toSQL() {
       let sql = SqlString.escapeId(this.name);
@@ -298,15 +294,7 @@ export class SQL {
       return this;
    }
    _table(t, alias) {
-      const to = typeof(t) === 'object';
-      if (to && typeof(t.table) === 'function') {
-         return {name: t.table(), alias: alias};
-      } else if (to && typeof(t.table) === 'string') {
-         return {name: t.table, alias: alias};
-      } else if (to  && t instanceof TableDefinition) {
-         return {name: t.name, alias: t.alias || alias};
-      }
-      return {name: t, alias: alias};
+      return {name: tablename(t), alias: alias};
    }
    _addtable(t, alias) {
       const {name, _alias} = this._table(t, alias);

@@ -24,6 +24,27 @@ export const QueryConditionOperator_JOIN = 'JOIN';
 export const QueryConditionGroupOperator_AND = 'AND';
 export const QueryConditionGroupOperator_OR = 'OR';
 
+// support table coming from either a function, a static getter or just a value itself
+export const tablename = (o) => {
+   const t = typeof(o) === 'object';
+   if (t) {
+      const tt = typeof(o.table);
+      switch(tt) {
+         case 'function': {
+            return o.table();
+         }
+         case 'string': {
+            return o.table;
+         }
+      }
+      const tn = typeof(o.name);
+      if (typeof(tn) === 'string') {
+         return o.name;
+      }
+   }
+   return o;
+};
+
 /**
  * SQL Filter helper class
  * 
@@ -34,13 +55,7 @@ export default class Filter {
       this.filter = {condition: []};
    }
    cond(key, value, operator = QueryConditionOperator_EQ, table) {
-      if (table && typeof(table) === 'object' && typeof(table.table) === 'function') {
-         // instance.table()
-         table = table.table();
-      } else if (table && typeof(table) === 'object' && typeof(table.table) === 'string') {
-         // Class.table
-         table = table.table;
-      }
+      table = tablename(table);
       this.filter.condition.push({
          conditions:[{
             field: key,
@@ -96,17 +111,11 @@ export default class Filter {
    join(aTable, aColumn, bTable, bColumn) {
       let left = SqlString.escapeId(aColumn);
       if (aTable || this.table) {
-         if (typeof(aTable) === 'object' && typeof(aTable.table) === 'function') {
-            aTable = aTable.table();
-         }
-         left = SqlString.escapeId(aTable || this.table) + '.' + left;
+         left = SqlString.escapeId(tablename(aTable) || this.table) + '.' + left;
       }
       let right = SqlString.escapeId(bColumn);
       if (bTable || this.table) {
-         if (typeof(bTable) === 'object' && typeof(bTable.table) === 'function') {
-            bTable = bTable.table();
-         }
-         right = SqlString.escapeId(bTable || this.table) + '.' + right;
+         right = SqlString.escapeId(tablename(bTable) || this.table) + '.' + right;
       }
       this.filter.condition.push({
          conditions:[{
@@ -124,7 +133,7 @@ export default class Filter {
       this.filter.order = this.filter.order || [];
       this.filter.order.push({
          field: column,
-         table: table,
+         table: tablename(table),
          direction: direction
       });
       return this;
@@ -162,12 +171,12 @@ export default class Filter {
       leftTok.forEach((item, i) => {
          let left = SqlString.escapeId(item.trim());
          if (leftTable || filter.table) {
-            left = SqlString.escapeId(leftTable || filter.table) + '.' + left;
+            left = SqlString.escapeId(tablename(leftTable) || filter.table) + '.' + left;
          }
          const r = rightTok[i].trim();
          let right = SqlString.escapeId(r);
          if (rightTable || filter.table) {
-            right = SqlString.escapeId(rightTable || filter.table) + '.' + right;
+            right = SqlString.escapeId(tablename(rightTable) || filter.table) + '.' + right;
          }
          conds.push({
             field: left + '=' + right,
@@ -175,7 +184,7 @@ export default class Filter {
          });
          if (params) {
             conds.push({
-               table: rightTable || filter.table,
+               table: tablename(rightTable) || filter.table,
                field: r,
                operator: QueryConditionOperator_EQUAL,
                value: params[r]
@@ -245,7 +254,7 @@ export default class Filter {
                const stmt = cond.conditions.map(cd => {
                   let sql = '';
                   if (cd.table || filter.table) {
-                     sql += '`' + (cd.table || filter.table) + '`.';
+                     sql += '`' + (tablename(cd.table) || filter.table) + '`.';
                   }
                   sql += '`' + cd.field + '` ';
                   switch (cd.operator) {
