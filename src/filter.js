@@ -245,14 +245,14 @@ export default class Filter {
       if (filter) {
          let sql = '';
          const params = [];
-         const statements = {}; // keep hash of statements to elimitate dups
          if (filter.condition && filter.condition.length) {
             sql += 'WHERE ';
-            const groups = [];
+            const groups = [], statements = {};
             for (let c = 0; c < filter.condition.length; c++) {
                const cond = filter.condition[c];
+               const groupparams = [];
                const stmt = cond.conditions.map(cd => {
-                  let sql = '';
+                  let sql = '', pvalue;
                   if (cd.table || filter.table) {
                      sql += '`' + (tablename(cd.table) || filter.table) + '`.';
                   }
@@ -261,13 +261,13 @@ export default class Filter {
                      case QueryConditionOperator_EQ:
                      case QueryConditionOperator_EQUAL: {
                         sql += '= ?';
-                        params.push(cd.value);
+                        pvalue = cd.value;
                         break;
                      }
                      case QueryConditionOperator_NOT_EQ:
                      case QueryConditionOperator_NOT_EQUAL: {
                         sql += '!= ?';
-                        params.push(cd.value);
+                        pvalue = cd.value;
                         break;
                      }
                      case QueryConditionOperator_NULL: {
@@ -280,32 +280,32 @@ export default class Filter {
                      }
                      case QueryConditionOperator_GREATER: {
                         sql += '> ?';
-                        params.push(cd.value);
+                        pvalue = cd.value;
                         break;
                      }
                      case QueryConditionOperator_GREATER_EQ: {
                         sql += '>= ?';
-                        params.push(cd.value);
+                        pvalue = cd.value;
                         break;
                      }
                      case QueryConditionOperator_LESS: {
                         sql += '< ?';
-                        params.push(cd.value);
+                        pvalue = cd.value;
                         break;
                      }
                      case QueryConditionOperator_LESS_EQ: {
                         sql += '<= ?';
-                        params.push(cd.value);
+                        pvalue = cd.value;
                         break;
                      }
                      case QueryConditionOperator_IN: {
                         sql += 'IN (?)';
-                        params.push(cd.value);
+                        pvalue = cd.value;
                         break;
                      }
                      case QueryConditionOperator_NOT_IN: {
                         sql += 'NOT IN (?)';
-                        params.push(cd.value);
+                        pvalue = cd.value;
                         break;
                      }
                      case QueryConditionOperator_BETWEEN: {
@@ -326,12 +326,12 @@ export default class Filter {
                      }
                      case QueryConditionOperator_LIKE : {
                         sql += 'LIKE ?';
-                        params.push(cd.value);
+                        pvalue = cd.value;
                         break;
                      }
                      case QueryConditionOperator_NOT_LIKE : {
                         sql += 'NOT LIKE ?';
-                        params.push(cd.value);
+                        pvalue = cd.value;
                         break;
                      }
                      case QueryConditionOperator_JOIN: {
@@ -339,16 +339,22 @@ export default class Filter {
                         break;
                      }
                   }
-                  if (!statements[sql]) {
-                     statements[sql] = true;
-                     return sql;
-                  }
+                  pvalue && groupparams.push(pvalue);
+                  return sql;
                }).filter(x => x);
                if (stmt.length) {
-                  if (cond.operator === QueryConditionGroupOperator_OR) {
-                     groups.push(stmt.join(' OR '))
-                  } else {
-                     groups.push(stmt.join(' AND '))
+                  const sqlkey = JSON.stringify(groupparams) + JSON.stringify(stmt);
+                  if (!statements[sqlkey]) {
+                     if (cond.operator === QueryConditionGroupOperator_OR) {
+                        groups.push(stmt.join(' OR '))
+                     } else {
+                        groups.push(stmt.join(' AND '))
+                     }
+                     // only push once not a dupe
+                     if (groupparams && groupparams.length) {
+                        groupparams.forEach(p => params.push(p));
+                     }
+                     statements[sqlkey] = 1;
                   }
                }
             }

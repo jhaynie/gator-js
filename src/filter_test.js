@@ -749,9 +749,47 @@ test('filter instance with join', t => {
 });
 
 test('filter duplicates', t => {
-   const filter = new Filter().join('a', 'afield', 'b', 'bfield').join('a', 'afield', 'b', 'bfield').toSQL();
+   const filter = new Filter()
+      .join('a', 'afield', 'b', 'bfield')
+      .join('a', 'afield', 'b', 'bfield')
+      .toSQL();
    t.deepEqual(filter, {
       params: [],
       query: 'WHERE `a`.`afield` = `b`.`bfield`'
    });
+   const filter2 = new Filter()
+      .join('a', 'afield', 'b', 'bfield')
+      .join('a', 'xfield', 'b', 'yfield')
+      .toSQL();
+   t.deepEqual(filter2, {
+      params: [],
+      query: 'WHERE (`a`.`afield` = `b`.`bfield`) AND (`a`.`xfield` = `b`.`yfield`)'
+   });
+   const filter3 = new Filter()
+      .join('a', 'afield', 'b', 'bfield')
+      .join('a', 'xfield', 'b', 'yfield')
+      .join('a', 'afield', 'b', 'bfield')
+      .join('a', 'xfield', 'b', 'yfield')
+      .toSQL();
+   t.deepEqual(filter3, {
+      params: [],
+      query: 'WHERE (`a`.`afield` = `b`.`bfield`) AND (`a`.`xfield` = `b`.`yfield`)'
+   });
+   const filter4 = new Filter()
+      .eq('a', 'afield', 'f')
+      .eq('a', 'afield', 'f')
+      .toSQL();
+   t.deepEqual(filter4, {
+      params: ['afield'],
+      query: 'WHERE `f`.`a` = ?'
+   });
+   const filter5 = new Filter()
+      .eq('a', 'afield', 'f')
+      .eq('a', 'bfield', 'f')
+      .toSQL();
+   t.deepEqual(filter5, {
+      params: ['afield', 'bfield'],
+      query: 'WHERE (`f`.`a` = ?) AND (`f`.`a` = ?)'
+   });
 });
+
