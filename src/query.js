@@ -298,9 +298,12 @@ export class SQL {
       return this;
    }
    _table(t, alias) {
-      if (typeof(t) === 'object' && typeof(t.table) === 'function') {
+      const to = typeof(t) === 'object';
+      if (to && typeof(t.table) === 'function') {
          return {name: t.table(), alias: alias};
-      } else if (typeof(t) == 'object' && t instanceof TableDefinition) {
+      } else if (to && typeof(t.table) === 'string') {
+         return {name: t.table, alias: alias};
+      } else if (to  && t instanceof TableDefinition) {
          return {name: t.name, alias: t.alias || alias};
       }
       return {name: t, alias: alias};

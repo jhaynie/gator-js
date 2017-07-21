@@ -35,7 +35,11 @@ export default class Filter {
    }
    cond(key, value, operator = QueryConditionOperator_EQ, table) {
       if (table && typeof(table) === 'object' && typeof(table.table) === 'function') {
+         // instance.table()
          table = table.table();
+      } else if (table && typeof(table) === 'object' && typeof(table.table) === 'string') {
+         // Class.table
+         table = table.table;
       }
       this.filter.condition.push({
          conditions:[{
@@ -232,6 +236,7 @@ export default class Filter {
       if (filter) {
          let sql = '';
          const params = [];
+         const statements = {}; // keep hash of statements to elimitate dups
          if (filter.condition && filter.condition.length) {
             sql += 'WHERE ';
             const groups = [];
@@ -325,12 +330,17 @@ export default class Filter {
                         break;
                      }
                   }
-                  return sql;
-               });
-               if (cond.operator === QueryConditionGroupOperator_OR) {
-                  groups.push(stmt.join(' OR '))
-               } else {
-                  groups.push(stmt.join(' AND '))
+                  if (!statements[sql]) {
+                     statements[sql] = true;
+                     return sql;
+                  }
+               }).filter(x => x);
+               if (stmt.length) {
+                  if (cond.operator === QueryConditionGroupOperator_OR) {
+                     groups.push(stmt.join(' OR '))
+                  } else {
+                     groups.push(stmt.join(' AND '))
+                  }
                }
             }
             if (groups.length > 1) {

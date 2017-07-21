@@ -747,3 +747,11 @@ test('filter instance with join', t => {
       query: 'WHERE `a`.`afield` = `b`.`bfield`'
    });
 });
+
+test('filter duplicates', t => {
+   const filter = new Filter().join('a', 'afield', 'b', 'bfield').join('a', 'afield', 'b', 'bfield').toSQL();
+   t.deepEqual(filter, {
+      params: [],
+      query: 'WHERE `a`.`afield` = `b`.`bfield`'
+   });
+});
