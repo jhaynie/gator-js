@@ -276,6 +276,42 @@ export class SQL {
    static scopedColumnExpr(expr, table, column, alias) {
       return new ScopedColumnExpression(expr, table, column, alias);
    }
+   static gt(col, value, table) {
+      return new Filter().gt(col, value, table);
+   }
+   static lt(col, value, table) {
+      return new Filter().lt(col, value, table);
+   }
+   static gte(col, value, table) {
+      return new Filter().gte(col, value, table);
+   }
+   static lte(col, value, table) {
+      return new Filter().lte(col, value, table);
+   }
+   static eq(col, value, table) {
+      return new Filter().eq(col, value, table);
+   }
+   static neq(col, value, table) {
+      return new Filter().neq(col, value, table);
+   }
+   static in(col, value, table) {
+      return new Filter().in(col, value, table);
+   }
+   static nin(col, value, table) {
+      return new Filter().nin(col, value, table);
+   }
+   static like(col, value, table) {
+      return new Filter().like(col, value, table);
+   }
+   static nlike(col, value, table) {
+      return new Filter().nlike(col, value, table);
+   }
+   static null(col, table) {
+      return new Filter().null(col, table);
+   }
+   static notnull(col, table) {
+      return new Filter().notnull(col, table);
+   }
    count(column, alias) {
       this.parts.push(SQL.count(column, alias));
       return this;

@@ -558,3 +558,25 @@ test('utils function', t => {
 	t.is(sql, 'SELECT `project_id`, datediff(now(), max(from_unixtime(`issue`.`created_at`/1000))) as `days` FROM `issue` GROUP BY project_id');
 });
 
+test('helpers', t => {
+	const toSQLDate = (column, table) => SQL.from_unixtime(SQL.div(SQL.scopedColumn(table, column), 1000));
+	const maxDate = (column, table) => SQL.max(toSQLDate(column, table));
+	const daysFromMaxDateToNow = (column, table, alias) => SQL.datediff(SQL.now(), maxDate(column, table), alias);
+	const averageDays = (from, fromTable, to, toTable, alias) => SQL.avg(SQL.datediff(toSQLDate(from, fromTable), toSQLDate(to, toTable)), alias);
+	const daysFromNow = (days) => SQL.sub(SQL.now(), 'INTERVAL ' + days + ' day');
+	t.is('from_unixtime(`b`.`a`/1000)', toSQLDate('a', 'b').toSQL());
+	t.is('max(from_unixtime(`b`.`a`/1000))', maxDate('a', 'b').toSQL());
+	t.is('datediff(now(), max(from_unixtime(`b`.`a`/1000))) as `c`', daysFromMaxDateToNow('a', 'b', 'c').toSQL());
+	t.is('avg(datediff(from_unixtime(`b`.`a`/1000), from_unixtime(`undefined`.`c`/1000)))', averageDays('a', 'b', 'c').toSQL());
+	t.is('now()-INTERVAL 7 day', daysFromNow('7').toSQL());
+	const dateGreaterThan = (column, table, days) => SQL.gt(toSQLDate(column, table), daysFromNow(days));
+	const dateLessThanEqual = (column, table,  days) => SQL.lte(toSQLDate(column, table), daysFromNow(days));
+	t.deepEqual(dateGreaterThan('a','b','7').toSQL(),{
+		query: 'WHERE from_unixtime(`b`.`a`/1000) > now()-INTERVAL 7 day',
+		params: []
+	});
+	t.deepEqual(dateLessThanEqual('a','b','7').toSQL(),{
+		query: 'WHERE from_unixtime(`b`.`a`/1000) <= now()-INTERVAL 7 day',
+		params: []
+	});
+});
