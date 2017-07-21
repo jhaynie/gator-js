@@ -339,7 +339,7 @@ export default class Filter {
                         break;
                      }
                   }
-                  pvalue && groupparams.push(pvalue);
+                  pvalue !== undefined && groupparams.push(pvalue);
                   return sql;
                }).filter(x => x);
                if (stmt.length) {
