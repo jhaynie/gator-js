@@ -586,4 +586,6 @@ test('scoped groupby', t => {
 	t.is(sql, 'SELECT * FROM `issue` GROUP BY `a`.`b`');
 	const {sql:sql2} = new SQL({}, Issue).scopedGroupby('a', 'b').scopedGroupby('c','d').toSQL();
 	t.is(sql2, 'SELECT * FROM `issue` GROUP BY `a`.`b`, `c`.`d`');
+	const {sql:sql3} = new SQL({}, Issue).scopedGroupby(Issue, Issue.ID).toSQL();
+	t.is(sql3, 'SELECT * FROM `issue` GROUP BY `issue`.`id`');
 });

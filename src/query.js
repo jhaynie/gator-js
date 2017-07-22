@@ -474,7 +474,7 @@ export class SQL {
       return this.filter(new Filter().group(...cols));
    }
    scopedGroupby(table, column) {
-      const g = SqlString.escapeId(table) + '.' + SqlString.escapeId(column);
+      const g = SqlString.escapeId(tablename(table)) + '.' + SqlString.escapeId(column);
       return this.filter(new Filter().group(g));
    }
    join(tableA, colA, tableB, colB) {
