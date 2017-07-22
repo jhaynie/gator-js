@@ -473,6 +473,10 @@ export class SQL {
    groupby(...cols) {
       return this.filter(new Filter().group(...cols));
    }
+   scopedGroupby(table, column) {
+      const g = SqlString.escapeId(table) + '.' + SqlString.escapeId(column);
+      return this.filter(new Filter().group(g));
+   }
    join(tableA, colA, tableB, colB) {
       this._addtable(tableA);
       this._addtable(tableB);
@@ -507,7 +511,11 @@ export class SQL {
          }
       });
       if (groupby.length) {
-         this.filters.groupby = groupby.join(', ');
+         if (this.filters.groupby) {
+            this.filters.groupby += ', ' + groupby.join(', ');
+         } else {
+            this.filters.groupby = groupby.join(', ');
+         }
       }
       if (orders.length) {
          this.filters.order = orders;

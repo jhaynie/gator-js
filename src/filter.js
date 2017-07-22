@@ -134,7 +134,12 @@ export default class Filter {
       return this;
    }
    group(...groups) {
-      this.filter.groupby = groups.join(', ');
+      const g = groups.join(', ');
+      if (this.filter.groupby) {
+         this.filter.groupby = (this.filter.groupby + ' ' + g).trim();
+      } else {
+         this.filter.groupby = g;
+      }
       return this;
    }
    orderby(column, direction = QueryDirection_DESCENDING, table = this.table) {

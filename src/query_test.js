@@ -580,3 +580,10 @@ test('helpers', t => {
 		params: []
 	});
 });
+
+test('scoped groupby', t => {
+	const {sql} = new SQL({}, Issue).scopedGroupby('a', 'b').toSQL();
+	t.is(sql, 'SELECT * FROM `issue` GROUP BY `a`.`b`');
+	const {sql:sql2} = new SQL({}, Issue).scopedGroupby('a', 'b').scopedGroupby('c','d').toSQL();
+	t.is(sql2, 'SELECT * FROM `issue` GROUP BY `a`.`b`, `c`.`d`');
+});
