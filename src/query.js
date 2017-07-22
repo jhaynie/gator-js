@@ -210,22 +210,42 @@ export class SQL {
    static epochSeconds(alias) {
       return new ColumnExpression('UNIX_TIMESTAMP()', null, alias).noinvoke();
    }
-   static count(column, alias) {
-      return new ColumnExpression('count', column || '*', alias);
+   static count(column, alias, table) {
+      if (table) {
+         return new ScopedColumnExpression('count', table, column || '*', alias);
+      } else {
+         return new ColumnExpression('count', column || '*', alias);
+      }
    }
-   static avg(column, alias) {
-      return new ColumnExpression('avg', column, alias);
+   static avg(column, alias, table) {
+      if (table) {
+         return new ScopedColumnExpression('avg', table, column, alias);
+      } else {
+         return new ColumnExpression('avg', column, alias);
+      }
    }
-   static sum(column, alias) {
-      return new ColumnExpression('sum', column, alias);
+   static sum(column, alias, table) {
+      if (table) {
+         return new ScopedColumnExpression('sum', table, column, alias);
+      } else {
+         return new ColumnExpression('sum', column, alias);
+      }
    }
-   static min(column, alias) {
-      return new ColumnExpression('min', column, alias);
+   static min(column, alias, table) {
+      if (table) {
+         return new ScopedColumnExpression('min', table, column, alias);
+      } else {
+         return new ColumnExpression('min', column, alias);
+      }
    }
-   static max(column, alias) {
-      return new ColumnExpression('max', column, alias);
+   static max(column, alias, table) {
+      if (table) {
+        return new ScopedColumnExpression('max', table, column, alias);
+      } else {
+         return new ColumnExpression('max', column, alias);
+      }
    }
-   static datediff(from, to, alias) {
+   static datediff(from, to, alias, table) {
       return new ColumnExpression('datediff', [from, to], alias);
    }
    static datediffEpoch(from, to, table, alias) {
@@ -312,44 +332,54 @@ export class SQL {
    static notnull(col, table) {
       return new Filter().notnull(col, table);
    }
-   count(column, alias) {
-      this.parts.push(SQL.count(column, alias));
+   count(column, alias, table) {
+      this._addtable(table);
+      this.parts.push(SQL.count(column, alias, table));
       return this;
    }
-   avg(column, alias) {
-      this.parts.push(SQL.avg(column, alias));
+   avg(column, alias, table) {
+      this._addtable(table);
+      this.parts.push(SQL.avg(column, alias, table));
       return this;
    }
-   sum(column, alias) {
-      this.parts.push(SQL.sum(column, alias));
+   sum(column, alias, table) {
+      this._addtable(table);
+      this.parts.push(SQL.sum(column, alias, table));
       return this;
    }
-   min(column, alias) {
-      this.parts.push(SQL.min(column, alias));
+   min(column, alias, table) {
+      this._addtable(table);
+      this.parts.push(SQL.min(column, alias, table));
       return this;
    }
-   max(column, alias) {
-      this.parts.push(SQL.max(column, alias));
+   max(column, alias, table) {
+      this._addtable(table);
+      this.parts.push(SQL.max(column, alias, table));
       return this;
    }
-   div(col, value) {
-      this.parts.push(SQL.div(col, value));
+   div(col, value, table, alias) {
+      this._addtable(table);
+      this.parts.push(SQL.div(col, value, table, alias));
       return this;
    }
-   mod(col, value) {
-      this.parts.push(SQL.mod(col, value));
+   mod(col, value, table, alias) {
+      this._addtable(table);
+      this.parts.push(SQL.mod(col, value, table, alias));
       return this;
    }
-   add(col, value) {
-      this.parts.push(SQL.add(col, value));
+   add(col, value, table, alias) {
+      this._addtable(table);
+      this.parts.push(SQL.add(col, value, table, alias));
       return this;
    }
-   sub(col, value) {
-      this.parts.push(SQL.sub(col, value));
+   sub(col, value, table, alias) {
+      this._addtable(table);
+      this.parts.push(SQL.sub(col, value, table, alias));
       return this;
    }
-   mul(col, value) {
-      this.parts.push(SQL.mul(col, value));
+   mul(col, value, table, alias) {
+      this._addtable(table);
+      this.parts.push(SQL.mul(col, value, table, alias));
       return this;
    }
    now(alias) {
@@ -357,6 +387,7 @@ export class SQL {
       return this;
    }
    datediffEpoch(from, to, table, alias) {
+      this._addtable(table);
       this.parts.push(SQL.datediffEpoch(from, to, table, alias));
       return this;
    }
@@ -395,7 +426,7 @@ export class SQL {
       if (!t) {
          return false;
       }
-      const {name, _alias} = this._table(t, alias);
+      const {name, alias:_alias} = this._table(t, alias);
       const n = SqlString.escapeId(name);
       const k = alias || _alias ? n + ' ' + SqlString.escapeId(alias || _alias) : n;
       if (k in this.tables) {

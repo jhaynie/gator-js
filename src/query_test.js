@@ -589,3 +589,11 @@ test('scoped groupby', t => {
 	const {sql:sql3} = new SQL({}, Issue).scopedGroupby(Issue, Issue.ID).toSQL();
 	t.is(sql3, 'SELECT * FROM `issue` GROUP BY `issue`.`id`');
 });
+
+test('count scope with instance', t => {
+	const {sql} = new SQL({}, Issue).count('a', 'b', Issue).toSQL();
+	t.is(sql, 'SELECT count(`issue`.`a`) as `b` FROM `issue`');
+
+	const {sql:sql2} = new SQL({}, Issue).count('a', 'b', Issue).count('b', 'c', IssueProject).toSQL();
+	t.is(sql2, 'SELECT count(`issue`.`a`) as `b`, count(`issue_project`.`b`) as `c` FROM `issue`, `issue_project`');
+});
