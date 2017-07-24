@@ -60,7 +60,12 @@ export const expression = (o) => {
  */
 export default class Filter {
    constructor() {
+      this.operator = QueryConditionGroupOperator_AND;
       this.filter = {condition: []};
+   }
+   or() {
+      this.operator = QueryConditionGroupOperator_OR;
+      return this;
    }
    cond(key, value, operator = QueryConditionOperator_EQ, table) {
       table = tablename(table);
@@ -263,6 +268,7 @@ export default class Filter {
             const groups = [], statements = {};
             for (let c = 0; c < filter.condition.length; c++) {
                const cond = filter.condition[c];
+               // console.log('>>>', cond);
                const groupparams = [];
                const stmt = cond.conditions.map(cd => {
                   let sql = '', pvalue, usevalue;

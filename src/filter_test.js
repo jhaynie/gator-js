@@ -1,5 +1,7 @@
 import test from 'ava';
 import Filter from './filter';
+import {SQL} from './query';
+
 import {
    QueryConditionOperator_EQ,
    QueryConditionOperator_EQUAL,
@@ -793,3 +795,12 @@ test('filter duplicates', t => {
    });
 });
 
+test('filter or', t => {
+   const filter = new Filter()
+      .eq('a', 'b')
+      .eq('b', 'c')
+      .or();
+   const {sql, params} = new SQL().table('foo').filter(filter).toSQL();
+   t.is(sql, 'SELECT * FROM `foo` WHERE `a` = ? OR `b` = ?');
+   t.deepEqual(params, ['b', 'c']);
+});

@@ -262,6 +262,17 @@ export class SQL {
    static from_unixtime(column, alias) {
       return new ColumnExpression('from_unixtime', column, alias);
    }
+   static date_format(column, fmt, table, alias) {
+      column = expression(column);
+      if (table) {
+         const f = SqlString.escapeId(tablename(table)) + '.' + column;
+         const expr = 'date_format(' + f + ', "' + fmt + '")';
+         return new ScopedColumnExpression(expr, table, column, alias).noinvoke();
+      } else {
+         const expr = 'date_format(' + column + ', "' + fmt + '")';
+         return new ColumnExpression(expr, null, alias).noinvoke();
+      }
+   }
    static expr(op, col, value, table, alias) {
       col = expression(col);
       if (table) {
@@ -295,6 +306,11 @@ export class SQL {
    }
    static scopedColumnExpr(expr, table, column, alias) {
       return new ScopedColumnExpression(expr, table, column, alias);
+   }
+   static distinct(expr, alias) {
+      expr = expression(expr);
+      expr = 'distinct(' + expr + ')';
+      return new ColumnExpression(expr, null, alias).noinvoke();
    }
    static gt(col, value, table) {
       return new Filter().gt(col, value, table);
@@ -331,6 +347,10 @@ export class SQL {
    }
    static notnull(col, table) {
       return new Filter().notnull(col, table);
+   }
+   distinct(expr, alias) {
+      this.parts.push(SQL.distinct(expr, alias));
+      return this;
    }
    count(column, alias, table) {
       this._addtable(table);
@@ -417,6 +437,10 @@ export class SQL {
    }
    epochSeconds(alias) {
       this.parts.push(SQL.epochSeconds(alias));
+      return this;
+   }
+   date_format(col, fmt, alias, table) {
+      this.parts.push(SQL.date_format(col, fmt, table, alias));
       return this;
    }
    _table(t, alias) {
@@ -516,7 +540,7 @@ export class SQL {
    filter(...filters) {
       this.filters = this.filters || {condition:[]};
       const groupby = [];
-      let orders = [], limits = [];
+      let orders = [], limits = [], conds = [], op;
       let range;
       filters.forEach(f => {
          // see if this is the incoming JSON style vs. new Filter style and support it
@@ -526,7 +550,10 @@ export class SQL {
             f = o;
          }
          if (f.filter.condition && f.filter.condition.length) {
-            this.filters.condition = this.filters.condition.concat(f.filter.condition);
+            op = f.operator;
+            f.filter.condition.forEach(c => {
+               conds = conds.concat(c.conditions);
+            });
          }
          if (f.filter.groupby) {
             groupby.push(f.filter.groupby);
@@ -541,6 +568,12 @@ export class SQL {
             range = f.filter.range;
          }
       });
+      if (conds.length) {
+         this.filters.condition.push({
+            operator: op,
+            conditions: conds
+         });
+      }
       if (groupby.length) {
          if (this.filters.groupby) {
             this.filters.groupby += ', ' + groupby.join(', ');

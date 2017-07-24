@@ -358,7 +358,7 @@ test('complex sql', t => {
 		new Filter().group('priority', 'status')
 	)
 	.toSQL();
-	t.is(sql, 'SELECT count(`issue`.`id`) as `total`, avg(datediff(now(), from_unixtime(`issue`.`created_at`/1000))) as `daysOpen`, `jira_issue_priority`.`name` as `priority`, `jira_project_status`.`name` as `status` FROM `issue`, `jira_issue`, `jira_issue_priority`, `jira_project_status` WHERE (`issue`.`ref_id` = `jira_issue`.`id`) AND (`issue`.`ref_type` = ?) AND (`jira_issue`.`priority_id` = `jira_issue_priority`.`id`) AND (`jira_issue`.`status_id` = `jira_project_status`.`id`) AND (`issue`.`state` = ?) AND (`issue`.`customer_id` = ?) AND (`jira_issue`.`issue_type_id` = ?) GROUP BY priority, status');
+	t.is(sql, 'SELECT count(`issue`.`id`) as `total`, avg(datediff(now(), from_unixtime(`issue`.`created_at`/1000))) as `daysOpen`, `jira_issue_priority`.`name` as `priority`, `jira_project_status`.`name` as `status` FROM `issue`, `jira_issue`, `jira_issue_priority`, `jira_project_status` WHERE `issue`.`ref_id` = `jira_issue`.`id` AND `issue`.`ref_type` = ? AND `jira_issue`.`priority_id` = `jira_issue_priority`.`id` AND `jira_issue`.`status_id` = `jira_project_status`.`id` AND `issue`.`state` = ? AND `issue`.`customer_id` = ? AND `jira_issue`.`issue_type_id` = ? GROUP BY priority, status');
 	t.deepEqual(params, ['REF_TYPE_HERE', 'STATE_VALUE_HERE', 'CUSTOMER_ID_HERE', 'ISSUE_TYPE_HERE']);
 });
 
@@ -596,4 +596,29 @@ test('count scope with instance', t => {
 
 	const {sql:sql2} = new SQL({}, Issue).count('a', 'b', Issue).count('b', 'c', IssueProject).toSQL();
 	t.is(sql2, 'SELECT count(`issue`.`a`) as `b`, count(`issue_project`.`b`) as `c` FROM `issue`, `issue_project`');
+});
+
+test('date_format', t => {
+	const {sql} = new SQL({}, Issue).date_format('day', '%Y-%m-%d').toSQL();
+	t.is(sql, 'SELECT date_format(`day`, "%Y-%m-%d") FROM `issue`');
+
+	const {sql:sql2} = new SQL({}, Issue).date_format('day', '%Y-%m-%d', 'day', Issue).toSQL();
+	t.is(sql2, 'SELECT date_format(`issue`.`day`, "%Y-%m-%d") as `day` FROM `issue`');
+
+	const {sql:sql3} = new SQL({}, Issue).date_format('day', '%Y-%m-%d', 'day').toSQL();
+	t.is(sql3, 'SELECT date_format(`day`, "%Y-%m-%d") as `day` FROM `issue`');
+});
+
+test('distinct', t => {
+	const {sql} = new SQL({}, Issue).distinct('day').toSQL();
+	t.is(sql, 'SELECT distinct(`day`) FROM `issue`');
+
+	const {sql:sql2} = new SQL({}, Issue).distinct(SQL.count('day')).toSQL();
+	t.is(sql2, 'SELECT distinct(count(`day`)) FROM `issue`');
+
+	const {sql:sql3} = new SQL({}, Issue).distinct(SQL.count('day'), 'd').toSQL();
+	t.is(sql3, 'SELECT distinct(count(`day`)) as `d` FROM `issue`');
+
+	const {sql:sql4} = new SQL({}, Issue).distinct(SQL.count('day', '', 'foo'), 'd').toSQL();
+	t.is(sql4, 'SELECT distinct(count(`foo`.`day`)) as `d` FROM `issue`');
 });
