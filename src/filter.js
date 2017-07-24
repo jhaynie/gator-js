@@ -433,7 +433,11 @@ export default class Filter {
             sql += ' ORDER BY ' + filter.order.map(order).join(', ');
          }
          if (filter.limit) {
-            sql += ' LIMIT ' + filter.limit;
+            if (filter.limit < 0) {
+               // for limit -1 we are explicitly turning off limits
+            } else {
+               sql += ' LIMIT ' + filter.limit;
+            }
          }
          if (filter.range) {
             sql += ' LIMIT ' + filter.range.offset + ',' + filter.range.limit;

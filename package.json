@@ -1,6 +1,6 @@
 {
   "name": "gator-js",
-  "version": "0.0.39",
+  "version": "0.0.40",
   "description": "Gator codegen JS helper",
   "main": "lib/bundle.js",
   "license": "MIT",
