@@ -1,5 +1,6 @@
 import test from 'ava';
 import Filter from './filter';
+import {QueryDirection_ASCENDING, QueryDirection_DESCENDING} from './filter';
 import Query from './query';
 import {
 	AllColumns,
@@ -621,4 +622,21 @@ test('distinct', t => {
 
 	const {sql:sql4} = new SQL({}, Issue).distinct(SQL.count('day', '', 'foo'), 'd').toSQL();
 	t.is(sql4, 'SELECT distinct(count(`foo`.`day`)) as `d` FROM `issue`');
+});
+
+test('order', t => {
+	const {sql} = new SQL({}, Issue).distinct('day').order('day').toSQL();
+	t.is(sql, 'SELECT distinct(`day`) FROM `issue` ORDER BY `day` ASC');
+
+	const {sql:sql2} = new SQL({}, Issue).distinct('day').order({field:'day'}).toSQL();
+	t.is(sql2, 'SELECT distinct(`day`) FROM `issue` ORDER BY `day` ASC');
+
+	const {sql:sql3} = new SQL({}, Issue).distinct('day').order({field:'day', direction:QueryDirection_DESCENDING}).toSQL();
+	t.is(sql3, 'SELECT distinct(`day`) FROM `issue` ORDER BY `day` DESC');
+
+	const {sql:sql4} = new SQL({}, Issue).distinct('day').order('a', 'b').toSQL();
+	t.is(sql4, 'SELECT distinct(`day`) FROM `issue` ORDER BY `a` ASC, `b` ASC');
+
+	const {sql:sql5} = new SQL({}, Issue).distinct('day').order({field:'a', direction:QueryDirection_DESCENDING}, {field:'b', direction:QueryDirection_ASCENDING}).toSQL();
+	t.is(sql5, 'SELECT distinct(`day`) FROM `issue` ORDER BY `a` DESC, `b` ASC');
 });

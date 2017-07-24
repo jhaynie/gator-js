@@ -1,6 +1,11 @@
 import SqlString from 'sqlstring';
 import Filter from './filter';
-import {tablename, expression} from './filter';
+import {
+   tablename,
+   expression,
+   QueryDirection_ASCENDING,
+   QueryDirection_DESCENDING
+} from './filter';
 
 // marker interfaces
 class SQLDefinition {
@@ -536,6 +541,17 @@ export class SQL {
       this._addtable(tableA);
       this._addtable(tableB);
       return this.filter(new Filter().join(tableA, colA, tableB, colB));
+   }
+   order(...orders) {
+      this.filters = this.filters || {};
+      this.filters.order = orders.map(o => {
+         if (typeof(o) === 'string') {
+            return {field: o, direction: QueryDirection_ASCENDING};
+         } else {
+            return o;
+         }
+      });
+      return this;
    }
    filter(...filters) {
       this.filters = this.filters || {condition:[]};
